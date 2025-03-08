@@ -10,12 +10,12 @@ import { useNavigate } from "react-router-dom";
 
 function App() {
 
-    // const { logout } = useAuth();
-    // const navigate = useNavigate();
+    const { logout } = useAuth();
+    const navigate = useNavigate();
 
     return (
         <div style={{padding: 20, marginLeft: 20}}>
-            {/*<button onClick={() => { logout(); navigate("/login"); }}>登出</button>*/}
+            <button onClick={() => { logout(); navigate("/login"); }}>登出</button>
             <Row gutter={16}>
                 <Col span={5}>
                     <TextImportModal/>
