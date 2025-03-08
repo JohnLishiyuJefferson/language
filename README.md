@@ -1,5 +1,7 @@
 # React + TypeScript + Vite
 
+安装依赖使用 yarn install --registry https://registry.yarnpkg.com 命令，不然它会使用sap的依赖
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
