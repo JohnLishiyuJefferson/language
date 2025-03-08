@@ -3,11 +3,19 @@ import AnalyzedText from "./AnalyzedText.tsx";
 import VocabularyList from "./VocabularyList.tsx";
 import AISpace from "./AISpace.tsx";
 import TextImportModal from "./TextImportModal.tsx";
+import AudioPlayer from "./AudioPlayer.tsx";
+import VideoPlayer from "./VideoPlayer.tsx";
+import { useAuth } from "./AuthContext";
+import { useNavigate } from "react-router-dom";
 
 function App() {
 
+    // const { logout } = useAuth();
+    // const navigate = useNavigate();
+
     return (
         <div style={{padding: 20, marginLeft: 20}}>
+            {/*<button onClick={() => { logout(); navigate("/login"); }}>登出</button>*/}
             <Row gutter={16}>
                 <Col span={5}>
                     <TextImportModal/>
@@ -30,6 +38,8 @@ function App() {
                 </Col>
                 <Col span={9}>
                     <AISpace/>
+                    <AudioPlayer />
+                    <VideoPlayer />
                 </Col>
             </Row>
         </div>

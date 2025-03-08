@@ -4,22 +4,25 @@ export class Vocabulary {
     explanation: string;
     kana: string;
     structure_list: Array<Structure>;
+    id: number;
 
-    constructor(word: string, base_form: string, explanation: string, kana: string, structure: Array<Structure>) {
+    constructor(word: string, base_form: string, explanation: string, kana: string, structure: Array<Structure>, id: number) {
         this.word = word;
         this.base_form = base_form;
         this.explanation = explanation;
         this.kana = kana;
         this.structure_list = structure;
+        this.id = id;
     }
 
-    toDict(): { [key: string]: string | Structure[] } {
+    toDict(): { [key: string]: string | Structure[] | number } {
         return {
             word: this.word,
             base_form: this.base_form,
             explanation: this.explanation,
             kana: this.kana,
             structure_list: this.structure_list,
+            id: this.id,
         };
     }
 }
@@ -30,6 +33,7 @@ export class VocabularyFromBackend {
     explanation: string;
     kana: string;
     structure: string;
+    id: number;
 
     constructor(word: string, base_form: string, explanation: string, kana: string, structure: string) {
         this.word = word;

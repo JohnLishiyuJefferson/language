@@ -4,7 +4,7 @@ import {useDispatch, useSelector} from "react-redux";
 import {useState} from "react";
 import {RootState} from "./store.ts";
 import {Vocabulary, VocabularyFromBackend} from "./Entity.ts";
-import {processText} from "./api.ts";
+import {fetchAudio, processText} from "./api.ts";
 
 const TextImportModal = () => {
     const dispatch = useDispatch();
@@ -13,6 +13,7 @@ const TextImportModal = () => {
 
     const showModal = () => {
         setIsModalOpen(true);
+        fetchAudio();
     };
 
     const handleOk = () => {
@@ -31,12 +32,12 @@ const TextImportModal = () => {
             console.log("这是original，", response.data.original_text_list);
             dispatch(updateAnalyzedText(response.data.original_text_list));
             const vocabularies = vocabularyList.map(item => {
-                const vocabulary: Vocabulary = new Vocabulary(item.word, item.base_form, item.explanation, item.kana, []);
+                const vocabulary: Vocabulary = new Vocabulary(item.word, item.base_form, item.explanation, item.kana, [], item.id);
                 vocabulary.structure_list = JSON.parse(item.structure);
                 return vocabulary;
             });
-            const vocabularyMap = vocabularies?.reduce<Record<string, Vocabulary>>((acc, user) => {
-                acc[user.word] = user;
+            const vocabularyMap = vocabularies?.reduce<Record<string, Vocabulary>>((acc, vocabulary) => {
+                acc[vocabulary.word] = vocabulary;
                 return acc;
             }, {});
             dispatch(updateDict(vocabularyMap));
