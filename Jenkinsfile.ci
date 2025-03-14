@@ -1,5 +1,5 @@
 pipeline {
-    agent { node { name 'host' } }  // 可以根据需要选择代理
+    agent { node { label 'docker-node' } }  // 可以根据需要选择代理
 
     environment {
         IMAGE_NAME = 'ghcr.io/johnlishiyujefferson/my-react'  // Docker 镜像的名称
