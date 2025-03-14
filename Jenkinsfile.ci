@@ -41,7 +41,10 @@ pipeline {
             steps {
                 echo 'Pushing Docker image to registry...'
                 script {
-                    sh "docker login ghcr.io -u JohnLishiyuJefferson --password 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"
+                    // 使用 Jenkins 的 Credentials 插件来安全地传递 GitHub Token
+                    withCredentials([string(credentialsId: 'GH_TOKEN', variable: 'GH_TOKEN')]) {
+                        sh "echo ${GH_TOKEN} | docker login ghcr.io -u JohnLishiyuJefferson --password-stdin"
+                    }
                     docker.image("${IMAGE_NAME}:${TAG}").push()
                 }
             }
