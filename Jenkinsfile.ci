@@ -41,7 +41,7 @@ pipeline {
             steps {
                 echo 'Pushing Docker image to registry...'
                 script {
-                    sh "echo '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' | docker login ghcr.io -u JohnLishiyuJefferson --password-stdin"
+                    sh "docker login ghcr.io -u JohnLishiyuJefferson --password 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"
                     docker.image("${IMAGE_NAME}:${TAG}").push()
                 }
             }
