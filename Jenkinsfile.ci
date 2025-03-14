@@ -32,8 +32,7 @@ pipeline {
             steps {
                 echo 'Building Docker image from Dockerfile...'
                 script {
-                    docker.build("${IMAGE_NAME}:${TAG}", '.')  // 根据 Dockerfile 构建镜像
-                    docker.build("${IMAGE_NAME}:${LATEST_TAG}", '.')  // 同时构建 latest 镜像
+                    docker.build("${IMAGE_NAME}:${TAG} -t ${IMAGE_NAME}:${LATEST_TAG}", '.')
                 }
             }
         }
