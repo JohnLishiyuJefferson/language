@@ -1,51 +1,58 @@
 pipeline {
-    agent {
-        docker {
-            image 'node:18'  // 使用 Node.js 18 的官方 Docker 镜像
-            args '-v /Users/C5389057/.colima/default/docker.sock:/var/run/docker.sock'  // 挂载 Docker 进程
-        }
-    }
+    agent any  // 可以根据需要选择代理
+
     environment {
-        CI = 'true'
+        IMAGE_NAME = 'ghcr.io/JohnLishiyuJefferson/my-react'  // Docker 镜像的名称
+        TAG = "${GIT_COMMIT}-${BUILD_TIMESTAMP}"  // 镜像标签：Git 提交哈希与时间戳
+        LATEST_TAG = 'latest'  // latest 标签
     }
+
     stages {
+        stage('Prepare') {
+            steps {
+                script {
+                    env.GIT_COMMIT = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()  // 获取 Git 提交哈希值
+                    env.BUILD_TIMESTAMP = sh(returnStdout: true, script: 'date +%Y%m%d%H%M%S').trim()  // 获取当前时间戳
+                }
+            }
+        }
+
         stage('Checkout') {
             steps {
-                echo 'Checking out code...'
-                checkout scm
+                echo 'Checking out code from repository...'
+                checkout scm  // 拉取代码
             }
         }
-        stage('Install Dependencies') {
+
+        stage('Build Docker Image') {
             steps {
-                echo 'Installing dependencies...'
-                sh 'npm install'
+                echo 'Building Docker image from Dockerfile...'
+                script {
+                    docker.build("${IMAGE_NAME}:${TAG}", '.')  // 根据 Dockerfile 构建镜像
+                    docker.build("${IMAGE_NAME}:${LATEST_TAG}", '.')  // 同时构建 latest 镜像
+                }
             }
         }
-        stage('Code Quality Check') {
+
+        stage('Push Docker Image') {
             steps {
-                echo 'Running ESLint...'
-                sh 'npm run lint'
-            }
-        }
-        stage('Build') {
-            steps {
-                echo 'Building the project...'
-                sh 'npm run build'
-            }
-        }
-        stage('Run Tests') {
-            steps {
-                echo 'Running tests...'
-                sh 'npm test'
+                echo 'Pushing Docker image to registry...'
+                script {
+                    echo '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' | docker login ghcr.io -u JohnLishiyuJefferson --password-stdin  // 登录 GitHub 镜像仓库
+                    docker.image("${IMAGE_NAME}:${TAG}").push()  // 推送带有哈希标签的镜像
+                    docker.image("${IMAGE_NAME}:${LATEST_TAG}").push()  // 推送 latest 标签的镜像
+                }
             }
         }
     }
+
     post {
         success {
-            echo 'Build & Test Success!'
+            echo 'Build Success!'
         }
         failure {
-            echo 'Build & Test Failed!'
+            echo 'Build Failed!'
         }
     }
 }
+
