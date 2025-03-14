@@ -3,7 +3,6 @@ pipeline {
 
     environment {
         IMAGE_NAME = 'ghcr.io/johnlishiyujefferson/my-react'  // Docker 镜像的名称
-        TAG = "${GIT_COMMIT}-${BUILD_TIMESTAMP}"  // 镜像标签：Git 提交哈希与时间戳
         LATEST_TAG = 'latest'  // latest 标签
     }
 
@@ -13,6 +12,7 @@ pipeline {
                 script {
                     env.GIT_COMMIT = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()  // 获取 Git 提交哈希值
                     env.BUILD_TIMESTAMP = sh(returnStdout: true, script: 'date +%Y%m%d%H%M%S').trim()  // 获取当前时间戳
+                    env.TAG = "${env.GIT_COMMIT}-${env.BUILD_TIMESTAMP}"  // 正确设置 TAG
                     echo "Git Commit: ${env.GIT_COMMIT}"
                     echo "Build Timestamp: ${env.BUILD_TIMESTAMP}"
                     echo "Tag: ${env.TAG}"
@@ -32,7 +32,8 @@ pipeline {
             steps {
                 echo 'Building Docker image from Dockerfile...'
                 script {
-                    docker.build("${IMAGE_NAME}:${TAG} -t ${IMAGE_NAME}:${LATEST_TAG}", '.')
+                    def dockerImage = docker.build("${IMAGE_NAME}:${TAG}", '.')
+                    dockerImage.tag(env.LATEST_TAG)  // 将同一个镜像打上 latest 标签
                 }
             }
         }
