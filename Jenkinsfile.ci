@@ -1,0 +1,51 @@
+pipeline {
+    agent {
+        docker {
+            image 'node:18'  // 使用 Node.js 18 的官方 Docker 镜像
+            args '-v /Users/C5389057/.colima/default/docker.sock:/var/run/docker.sock'  // 挂载 Docker 进程
+        }
+    }
+    environment {
+        CI = 'true'
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Checking out code...'
+                checkout scm
+            }
+        }
+        stage('Install Dependencies') {
+            steps {
+                echo 'Installing dependencies...'
+                sh 'npm install'
+            }
+        }
+        stage('Code Quality Check') {
+            steps {
+                echo 'Running ESLint...'
+                sh 'npm run lint'
+            }
+        }
+        stage('Build') {
+            steps {
+                echo 'Building the project...'
+                sh 'npm run build'
+            }
+        }
+        stage('Run Tests') {
+            steps {
+                echo 'Running tests...'
+                sh 'npm test'
+            }
+        }
+    }
+    post {
+        success {
+            echo 'Build & Test Success!'
+        }
+        failure {
+            echo 'Build & Test Failed!'
+        }
+    }
+}
