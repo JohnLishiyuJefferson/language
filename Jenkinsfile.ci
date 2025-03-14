@@ -2,7 +2,7 @@ pipeline {
     agent any  // 可以根据需要选择代理
 
     environment {
-        IMAGE_NAME = 'ghcr.io/JohnLishiyuJefferson/my-react'  // Docker 镜像的名称
+        IMAGE_NAME = 'ghcr.io/johnlishiyujefferson/my-react'  // Docker 镜像的名称
         TAG = "${GIT_COMMIT}-${BUILD_TIMESTAMP}"  // 镜像标签：Git 提交哈希与时间戳
         LATEST_TAG = 'latest'  // latest 标签
     }
@@ -13,6 +13,10 @@ pipeline {
                 script {
                     env.GIT_COMMIT = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()  // 获取 Git 提交哈希值
                     env.BUILD_TIMESTAMP = sh(returnStdout: true, script: 'date +%Y%m%d%H%M%S').trim()  // 获取当前时间戳
+                    echo "Git Commit: ${env.GIT_COMMIT}"
+                    echo "Build Timestamp: ${env.BUILD_TIMESTAMP}"
+                    echo "Tag: ${env.TAG}"
+                    echo "Latest Tag: ${env.LATEST_TAG}"
                 }
             }
         }
