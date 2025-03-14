@@ -1,5 +1,5 @@
 pipeline {
-    agent any  // 可以根据需要选择代理
+    agent none  // 使用 agent none，表示不在 Jenkins 主机上运行，而是在指定的节点上运行
 
     environment {
         IMAGE_NAME = 'ghcr.io/johnlishiyujefferson/my-react'  // Docker 镜像的名称
@@ -28,23 +28,30 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build Docker Image on Host') {
+            agent { label 'docker-node' }  // 确保构建任务在宿主机上执行
             steps {
-                echo 'Building Docker image from Dockerfile...'
+                echo 'Building Docker image from Dockerfile on host...'
                 script {
-                    docker.build("${IMAGE_NAME}:${TAG}", '.')  // 根据 Dockerfile 构建镜像
-                    docker.build("${IMAGE_NAME}:${LATEST_TAG}", '.')  // 同时构建 latest 镜像
+                    // 确保宿主机上的 Docker 客户端可用
+                    sh "docker build -t ${IMAGE_NAME}:${TAG} ."
+                    sh "docker build -t ${IMAGE_NAME}:${LATEST_TAG} ."
                 }
             }
         }
 
         stage('Push Docker Image') {
+            agent { label 'docker-node' }  // 同样让推送镜像的任务在宿主机上执行
             steps {
-                echo 'Pushing Docker image to registry...'
+                echo 'Pushing Docker image to registry on host...'
                 script {
-                    echo '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' | docker login ghcr.io -u JohnLishiyuJefferson --password-stdin  // 登录 GitHub 镜像仓库
-                    docker.image("${IMAGE_NAME}:${TAG}").push()  // 推送带有哈希标签的镜像
-                    docker.image("${IMAGE_NAME}:${LATEST_TAG}").push()  // 推送 latest 标签的镜像
+                    withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+                        sh """
+                            echo ${GITHUB_TOKEN} | docker login ghcr.io -u JohnLishiyuJefferson --password-stdin
+                            docker push ${IMAGE_NAME}:${TAG}
+                            docker push ${IMAGE_NAME}:${LATEST_TAG}
+                        """
+                    }
                 }
             }
         }
@@ -59,4 +66,3 @@ pipeline {
         }
     }
 }
-
