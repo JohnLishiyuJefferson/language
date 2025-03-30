@@ -1,13 +1,27 @@
 import axios from "axios";
 
 // const API_BASE_URL = "http://localhost:8000"; // 你的 Flask 服务器地址
-// const API_BASE_URL = "http://localhost:8001"; // 你的 Flask 服务器地址
-const API_BASE_URL = "http://54.206.63.167:5000";
+const API_BASE_URL = "http://localhost:8001"; // 你的 Flask 服务器地址
+// const API_BASE_URL = "http://54.206.63.167:5000";
 
 export const processText = async (uploadedText: string) => {
     try {
         const response = await axios.post(
             `${API_BASE_URL}/process`,
+            { text: uploadedText },
+            { headers: { "Content-Type": "application/json" } }
+        );
+        return response; // 返回服务器响应的数据
+    } catch (error) {
+        console.error("Error processing text:", error);
+        throw error; // 抛出错误，调用方可以处理
+    }
+};
+
+export const processText2 = async (uploadedText: string) => {
+    try {
+        const response = await axios.post(
+            `${API_BASE_URL}/process2`,
             { text: uploadedText },
             { headers: { "Content-Type": "application/json" } }
         );
@@ -43,28 +57,6 @@ export const getAiReply = async (sentence: string, questions: string[]) : Promis
     }
 };
 
-export const fetchAudio = async () => {
-    try {
-        // 发送 GET 请求以获取音频文件
-        const response = await axios.get(`${API_BASE_URL}/get-audio`, {
-            responseType: 'blob', // 设置响应类型为 blob 以处理文件
-        });
-        return response.data;
-        // 创建 URL 对象用于播放音频
-        // const audioUrl = URL.createObjectURL(response.data);
-        //
-        // // 创建 Audio 对象并播放音频
-        // const audio = new Audio(audioUrl);
-        // audio.play();
-
-        // 如果需要，可以返回音频 URL 或音频对象进行其他操作
-        // return audio;
-    } catch (error) {
-        console.error('Error fetching the audio:', error);
-        return null;
-    }
-};
-
 export const fetchVideo = async () => {
     try {
         // 请求后端接口，返回 Blob 数据
@@ -83,20 +75,32 @@ export const fetchVideo = async () => {
 };
 
 // 调用 Flask 接口，传入文本参数并返回生成的音频 URL
-export const fetchSynthesizedAudio = async (text: string, useAI: boolean) => {
+export const fetchSynthesizedAudioByAwsPolly = async (text: string, useAI: boolean) => {
     try {
-        const response = await axios.get(`${API_BASE_URL}/synthesize`, {
+        console.log("请求aws");
+        const response = await axios.get(`${API_BASE_URL}/synthesize-polly`, {
             params: { text, useAI },
             responseType: 'blob' // 以二进制 Blob 形式接收返回数据
         });
         // 将 Blob 数据转换为 URL
-        const audioUrl = URL.createObjectURL(response.data);
-        return audioUrl;
+        return URL.createObjectURL(response.data);
     } catch (error) {
         console.error('Error fetching synthesized audio:', error);
         return null;
     }
 }
+
+export const fetchSynthesizedAudioJsonByAwsPolly = async (text: string) => {
+    try {
+        // const response = await axios.post(`${API_BASE_URL}/synthesize-polly-json`, { text });
+        const response = await axios.post(`${API_BASE_URL}/merge`, { text });
+        // 直接返回 JSON 数据，例如 speech marks 数组
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching synthesized audio JSON:', error);
+        return null;
+    }
+};
 
 export const registerUser = async (username, password) => {
     return axios.post(`${API_BASE_URL}/register`, { username, password });
@@ -114,5 +118,25 @@ export const addWord = async (wordId: number) => {
         { headers: { Authorization: `Bearer ${token}` } }
     );
 };
+
+export const synthesizeAudioByGoogleGTTS = async (options: { text: string; lang?: string;}): Promise<string> => {
+    const { text, lang = 'en' } = options;
+    try {
+        console.log("请求的内容", text);
+        const response = await fetch(`${API_BASE_URL}/synthesize-google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, lang }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const audioBlob = await response.blob();
+        return URL.createObjectURL(audioBlob);
+    } catch (error) {
+        throw new Error(`Failed to generate audio: ${error.message}`);
+    }
+}
 
 

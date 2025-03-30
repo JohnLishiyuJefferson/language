@@ -1,6 +1,8 @@
 # React + TypeScript + Vite
 
 安装依赖使用 yarn install --registry https://registry.yarnpkg.com 命令，不然它会使用sap的依赖
+配置这个项目的ci脚本，登陆ghcr的时候，使用的PAT必须是作为secret存储在jenkins才行，否则，明文写进去的话，首先是github不会允许，
+其次，github貌似会检测到这个PAT已经不再安全了，所以会删除它，导致不能成功登陆到ghcr。
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

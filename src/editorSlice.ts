@@ -1,18 +1,20 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import {Vocabulary} from "./Entity.ts";
+import {TimedLine, Vocabulary} from "./Entity.ts";
 import {originalText} from "./originalText.ts";
 import {newsText} from "./news.ts";
 
 interface EditorState {
     uploadedText: string;
+    // vocabulary: Vocabulary | null;
     vocabulary: Vocabulary | null;
     selectedText: string;
-    analyzedText: Array<string>;
+    analyzedText: Array<TimedLine>;
     dict: Record<string, Vocabulary> | undefined;
+    currentTime: number;
 }
 
 // 初始化状态
-const initialState: EditorState = { uploadedText: newsText, vocabulary: null, selectedText: "", analyzedText: [], dict: undefined };
+const initialState: EditorState = { uploadedText: newsText, vocabulary: null, selectedText: "", analyzedText: [], dict: undefined, currentTime: 0 };
 
 const editorSlice = createSlice({
     name: "editor",
@@ -21,7 +23,7 @@ const editorSlice = createSlice({
         updateUploadedText: (state, action: PayloadAction<string>) => {
             state.uploadedText = action.payload;
         },
-        updateAnalyzedText: (state, action: PayloadAction<Array<string>>) => {
+        updateAnalyzedText: (state, action: PayloadAction<Array<TimedLine>>) => {
             state.analyzedText = action.payload;
         },
         updateVocabulary: (state, action: PayloadAction<Vocabulary>) => {
@@ -34,8 +36,11 @@ const editorSlice = createSlice({
         updateDict: (state, action: PayloadAction<Record<string, Vocabulary> | undefined>) => {
             state.dict = action.payload;
         },
+        updateCurrentTime: (state, action: PayloadAction<number>) => {
+            state.currentTime = action.payload;
+        },
     },
 });
 
-export const { updateUploadedText, updateVocabulary, updateSelectedText, updateAnalyzedText, updateDict } = editorSlice.actions;
+export const { updateUploadedText, updateVocabulary, updateSelectedText, updateAnalyzedText, updateDict, updateCurrentTime } = editorSlice.actions;
 export default editorSlice.reducer;

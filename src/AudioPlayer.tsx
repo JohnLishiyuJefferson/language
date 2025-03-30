@@ -1,27 +1,82 @@
-import React, { useRef, useState, useEffect } from 'react';
-import {fetchAudio, fetchSynthesizedAudio} from "./api.ts";
-import {Button} from "antd";
-import {useSelector} from "react-redux";
+import React, {useRef, useState, useEffect, forwardRef, useImperativeHandle} from 'react';
+import {fetchSynthesizedAudioByAwsPolly, fetchSynthesizedAudioJsonByAwsPolly} from "./api.ts";
+import {Button, Input, Switch} from "antd";
+import {useDispatch, useSelector} from "react-redux";
 import {RootState} from "./store.ts";
+import {updateAnalyzedText, updateCurrentTime} from "./editorSlice.ts";
+import JSZip from "jszip";
 
-const AudioPlayer: React.FC = () => {
+export interface AudioPlayerHandles {
+    handleStartSomewhere: (startPoint: number) => void;
+}
+
+interface AudioPlayerProps {
+    onTimeUpdate: (id: number | null) => void;
+}
+
+const AudioPlayer = forwardRef<AudioPlayerHandles, AudioPlayerProps>((props, ref) => {
+    const dispatch = useDispatch()
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
-    const [currentTime, setCurrentTime] = useState(0);
+    // const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [playbackRate, setPlaybackRate] = useState(1.0);
-    const selectedText = useSelector((state: RootState) => state.editor.selectedText);
-
+    const uploadedText = useSelector((state: RootState) => state.editor.uploadedText);
+    const currentTime = useSelector((state: RootState) => state.editor.currentTime);
+    const [audioFileTitle, setAudioFileTitle] = useState<string | null>("默认标题");
+    const setCurrentTime = (time: number) => {
+        dispatch(updateCurrentTime(time));
+    }
+    const [autoDownloadOn, setAutoDownloadOn] = useState(false);
+    const {onTimeUpdate} = props;
+    // 处理开关状态变化
+    const handleSwitchChange = (checked) => {
+        setAutoDownloadOn(checked);
+    };
     // 获取音频
-    const processAudio = async (useAI: boolean) => {
-        let url;
-        if (selectedText) {
-            url = await fetchSynthesizedAudio(selectedText, useAI);
-        } else {
-            url = await fetchAudio();
+    const processAudio = async () => {
+        try {
+            const awsAudioUrl = await fetchSynthesizedAudioByAwsPolly(uploadedText, true);
+            setAudioUrl(awsAudioUrl);
+            const jsonResp = await fetchSynthesizedAudioJsonByAwsPolly(uploadedText);
+            console.log("Resp", jsonResp);
+            dispatch(updateAnalyzedText(jsonResp.original_text_list));
+            if (autoDownloadOn) {
+                const audioResponse = await fetch(awsAudioUrl);
+                const audioBlob = await audioResponse.blob();
+                const audioUrlObject = URL.createObjectURL(audioBlob);
+
+                // 下载 JSON 文件
+                const jsonString = JSON.stringify(jsonResp, null, 2);
+                const jsonBlob = new Blob([jsonString], {type: 'application/json'});
+                const jsonUrlObject = URL.createObjectURL(jsonBlob);
+
+                // 创建一个 ZIP 文件
+                const zip = new JSZip();
+                zip.file(audioFileTitle + ".mp3", audioBlob, {binary: true});
+                zip.file(audioFileTitle + ".json", jsonString);
+
+                // 生成 ZIP 文件并下载
+                const zipContent = await zip.generateAsync({type: "blob"});
+                const zipUrlObject = URL.createObjectURL(zipContent);
+
+                // 创建下载链接
+                const a = document.createElement("a");
+                a.href = zipUrlObject;
+                a.download = audioFileTitle + ".zip";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+                // 清理
+                URL.revokeObjectURL(audioUrlObject);
+                URL.revokeObjectURL(jsonUrlObject);
+                URL.revokeObjectURL(zipUrlObject);
+            }
+        } catch (error) {
+            console.error("Error processing audio:", error);
         }
-        setAudioUrl(url);
     };
 
     useEffect(() => {
@@ -29,23 +84,26 @@ const AudioPlayer: React.FC = () => {
         const audio = audioRef.current;
         if (!audio) return;
 
-        const updateTime = () => setCurrentTime(audio.currentTime);
+        const updateTime = () => {
+            console.log("currentTime", audio.currentTime);
+            setCurrentTime(audio.currentTime);
+            onTimeUpdate(audio.currentTime);
+        }
         const updateDuration = () => setDuration(audio.duration);
         const handleEnded = () => {
             setIsPlaying(false);
             setCurrentTime(0);
         };
-
         audio.addEventListener('timeupdate', updateTime);
         audio.addEventListener('loadedmetadata', updateDuration);
         audio.addEventListener('ended', handleEnded);
-
+        // 清理定时器和事件监听器
         return () => {
             audio.removeEventListener('timeupdate', updateTime);
             audio.removeEventListener('loadedmetadata', updateDuration);
             audio.removeEventListener('ended', handleEnded);
         };
-    }, [audioUrl]); // 监听 audioRef.current
+    }, [audioUrl, onTimeUpdate]);
 
     // 播放 / 暂停
     const togglePlay = () => {
@@ -92,6 +150,18 @@ const AudioPlayer: React.FC = () => {
         }
     };
 
+    // 使用 useImperativeHandle 将内部方法暴露给父组件
+    useImperativeHandle(ref, () => ({
+        handleStartSomewhere,
+    }));
+
+    const handleStartSomewhere = (startPoint: number) => {
+        if (audioRef.current) {
+            audioRef.current.currentTime = startPoint;
+            setCurrentTime(startPoint);
+        }
+    };
+
     // 格式化时间（秒 -> mm:ss）
     const formatTime = (time: number) => {
         const minutes = Math.floor(time / 60);
@@ -103,12 +173,12 @@ const AudioPlayer: React.FC = () => {
         <div style={{ width: '400px', padding: '20px', border: '1px solid #ccc', borderRadius: '8px', textAlign: 'center' }}>
             <h3>音频播放器</h3>
 
-            {audioUrl && (
+            {(
                 <>
-                    <audio ref={audioRef} src={audioUrl} />
+                    <audio ref={audioRef} src={audioUrl}/>
 
                     {/* 播放控制按钮 */}
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', margin: '10px 0' }}>
+                    <div style={{display: 'flex', justifyContent: 'center', gap: '10px', margin: '10px 0'}}>
                         <button onClick={togglePlay}>{isPlaying ? '暂停' : '播放'}</button>
                         <button onClick={stopAudio}>🛑 停止</button>
                         <button onClick={() => skipTime(-5)}>⏪ 快退5s</button>
@@ -122,18 +192,18 @@ const AudioPlayer: React.FC = () => {
                         max={duration || 0}
                         value={currentTime}
                         onChange={handleSeek}
-                        style={{ width: '100%' }}
+                        style={{width: '100%'}}
                     />
 
                     {/* 时间显示 */}
-                    <div style={{ marginTop: '10px' }}>
+                    <div style={{marginTop: '10px'}}>
                         {formatTime(currentTime)} / {formatTime(duration)}
                     </div>
 
                     {/* 倍速调节 */}
-                    <div style={{ marginTop: '10px' }}>
+                    <div style={{marginTop: '10px'}}>
                         <label>倍速：</label>
-                        {[0.5, 1, 1.5, 2].map((rate) => (
+                        {[0.1, 0.5, 1, 1.5, 2].map((rate) => (
                             <button
                                 key={rate}
                                 onClick={() => changePlaybackRate(rate)}
@@ -151,10 +221,19 @@ const AudioPlayer: React.FC = () => {
                     </div>
                 </>
             )}
-            <Button onClick={() => processAudio(false)}>生成机械语音</Button>
-            <Button onClick={() => processAudio(true)}>生成AI语音</Button>
+            <Input
+                value={audioFileTitle}
+                onChange={(e) => setAudioFileTitle(e.target.value)}
+                placeholder="语音文件标题"
+            />
+            <Button onClick={processAudio}>生成语音</Button>
+            <Switch
+                checked={autoDownloadOn}
+                onChange={handleSwitchChange}
+            />
+            <p>是否下载音频文件到本地: {autoDownloadOn ? '是' : '否'}</p>
         </div>
     );
-};
+});
 
 export default AudioPlayer;

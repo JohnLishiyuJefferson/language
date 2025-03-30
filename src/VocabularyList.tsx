@@ -4,7 +4,7 @@ import ExpandableListItem from "./VocabularyItem.tsx";
 import {useSelector} from "react-redux";
 import {RootState} from "./store.ts";
 import SearchWordComponent from "./SearchWordComponent.tsx";
-import {addWord, fetchSynthesizedAudio} from "./api.ts";
+import {addWord, fetchSynthesizedAudioByAwsPolly} from "./api.ts";
 
 const VocabularyList: React.FC = () => {
 
@@ -15,7 +15,7 @@ const VocabularyList: React.FC = () => {
     useEffect(() => {
         if (vocabulary) {
             console.log("得到的vocabulary", vocabulary);
-            fetchSynthesizedAudio(vocabulary.word, false).then(audioUrl => {
+            fetchSynthesizedAudioByAwsPolly(vocabulary.word, false).then(audioUrl => {
                 if (audioUrl) {
                     if (audio) {
                         audio.pause(); // 停止之前的音频

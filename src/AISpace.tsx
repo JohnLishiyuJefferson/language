@@ -10,7 +10,7 @@ import {getAiReply} from "./api.ts";
 const AISpace: React.FC = () => {
     const dispatch = useDispatch();
     const [question, setQuestion] = useState<string>("");
-    const selectedText = useSelector((state: RootState) => state.editor.selectedText);
+    const selectedText = useSelector((state: RootState) => state.editor.uploadedText);
     const [reply, setReply] = useState<string>("");
 
     const sendQuestion = async () => {
@@ -21,7 +21,9 @@ const AISpace: React.FC = () => {
 
 
     return <div style={{ fontSize: 15, lineHeight: 1.6 }}>
-        <Input.TextArea value={selectedText} onChange={(e) => dispatch(updateSelectedText(e.target.value))} />
+        <Input.TextArea value={selectedText}
+                        // onChange={(e) => dispatch(updateSelectedText(e.target.value))}
+        />
         <span>对选中的内容进行提问：</span>
         <Input.TextArea value={question} onChange={(e) => setQuestion(e.target.value)} />
         <Button type="primary" onClick={sendQuestion}>提问</Button>

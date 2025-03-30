@@ -3,7 +3,6 @@ import AnalyzedText from "./AnalyzedText.tsx";
 import VocabularyList from "./VocabularyList.tsx";
 import AISpace from "./AISpace.tsx";
 import TextImportModal from "./TextImportModal.tsx";
-import AudioPlayer from "./AudioPlayer.tsx";
 import VideoPlayer from "./VideoPlayer.tsx";
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -32,13 +31,12 @@ function App() {
                     {/*    )}*/}
                     {/*/>*/}
                 </Col>
-                {/* 右边区域 */}
+                {/* 中间区域 */}
                 <Col span={10}>
                     <AnalyzedText wordsPerPage={450}/>
                 </Col>
                 <Col span={9}>
                     <AISpace/>
-                    <AudioPlayer />
                     <VideoPlayer />
                 </Col>
             </Row>
