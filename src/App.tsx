@@ -35,10 +35,10 @@ function App() {
                 <Col span={10}>
                     <AnalyzedText wordsPerPage={450}/>
                 </Col>
-                <Col span={9}>
-                    <AISpace/>
-                    <VideoPlayer />
-                </Col>
+                {/*<Col span={9}>*/}
+                {/*    <AISpace/>*/}
+                {/*    <VideoPlayer />*/}
+                {/*</Col>*/}
             </Row>
         </div>
     );
