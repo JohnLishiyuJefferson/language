@@ -1,9 +1,4 @@
-import {Modal, Row, Col, Input, Button, List} from "antd";
-import AnalyzedText from "./AnalyzedText.tsx";
-import VocabularyList from "./VocabularyList.tsx";
-import AISpace from "./AISpace.tsx";
-import TextImportModal from "./TextImportModal.tsx";
-import VideoPlayer from "./VideoPlayer.tsx";
+import {Row, Col} from "antd";
 import {useAuth} from "./AuthContext";
 import {useNavigate} from "react-router-dom";
 import ImageOcrUploader from "./ImageOcrUploader.tsx";
