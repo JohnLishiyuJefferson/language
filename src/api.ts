@@ -183,4 +183,9 @@ export const synthesizeAudioByGoogleGTTS = async (options: { text: string; lang?
     }
 }
 
-
+export const parsePicture = async (formData: FormData) => {
+    const response = await axios.post(`${API_BASE_URL}/ocr`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+}

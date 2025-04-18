@@ -6,6 +6,7 @@ import TextImportModal from "./TextImportModal.tsx";
 import VideoPlayer from "./VideoPlayer.tsx";
 import {useAuth} from "./AuthContext";
 import {useNavigate} from "react-router-dom";
+import ImageOcrUploader from "./ImageOcrUploader.tsx";
 
 function App() {
 
@@ -24,7 +25,8 @@ function App() {
                 <Row gutter={16}>
                     {/* 中间区域 */}
                     <Col span={24}>
-                        <AnalyzedText wordsPerPage={450}/>
+                        <ImageOcrUploader />
+                        {/*<AnalyzedText wordsPerPage={450}/>*/}
                     </Col>
                     {/*<Col span={9}>*/}
                     {/*    <AISpace/>*/}
