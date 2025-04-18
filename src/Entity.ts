@@ -110,5 +110,7 @@ export class Structure {
 export interface TimedLine {
     time: number;
     word_list: Array<string>;
+    time2: number;
+    en_value: string;
 }
 

@@ -4,31 +4,17 @@ import axios from "axios";
 const API_BASE_URL = "http://localhost:8001"; // 你的 Flask 服务器地址
 // const API_BASE_URL = "http://54.206.63.167:5000";
 
-export const processText = async (uploadedText: string) => {
+export const processText = async (jaText: Array<string>) => {
     try {
         const response = await axios.post(
-            `${API_BASE_URL}/process`,
-            { text: uploadedText },
+            `${API_BASE_URL}/parseJa`,
+            { text: jaText },
             { headers: { "Content-Type": "application/json" } }
         );
-        return response; // 返回服务器响应的数据
+        return response;
     } catch (error) {
         console.error("Error processing text:", error);
-        throw error; // 抛出错误，调用方可以处理
-    }
-};
-
-export const processText2 = async (uploadedText: string) => {
-    try {
-        const response = await axios.post(
-            `${API_BASE_URL}/process2`,
-            { text: uploadedText },
-            { headers: { "Content-Type": "application/json" } }
-        );
-        return response; // 返回服务器响应的数据
-    } catch (error) {
-        console.error("Error processing text:", error);
-        throw error; // 抛出错误，调用方可以处理
+        throw error;
     }
 };
 
@@ -64,10 +50,6 @@ export const fetchVideo = async () => {
             responseType: 'blob'
         });
         return response.data;
-        // 将 Blob 数据转换为 URL
-        // const videoUrl = URL.createObjectURL(response.data);
-        // console.log('Video URL:', videoUrl);
-        // return videoUrl;
     } catch (error) {
         console.error('Error fetching video:', error);
         return null;
@@ -75,13 +57,27 @@ export const fetchVideo = async () => {
 };
 
 // 调用 Flask 接口，传入文本参数并返回生成的音频 URL
-export const fetchSynthesizedAudioByAwsPolly = async (text: string, useAI: boolean) => {
+// 后端接口目前只是传一个缓存的信息。但是它是在prd应该使用的接口。
+export const fetchSynthesizedAudioByAwsPolly = async (text: string, language: string) => {
     try {
         console.log("请求aws");
-        const response = await axios.get(`${API_BASE_URL}/synthesize-polly`, {
-            params: { text, useAI },
+        const response = await axios.post(`${API_BASE_URL}/synthesize-polly`, { text, language }, {
+            responseType: 'blob'
+        });
+        return URL.createObjectURL(response.data);
+    } catch (error) {
+        console.error('Error fetching synthesized audio:', error);
+        return null;
+    }
+}
+// 英语合成测试接口
+export const fetchSynthesizedAudioByAwsPolly2 = async (text: string, language: string) => {
+    try {
+        console.log("请求aws");
+        const response = await axios.post(`${API_BASE_URL}/synthesize-polly2`, { text, language }, {
             responseType: 'blob' // 以二进制 Blob 形式接收返回数据
         });
+
         // 将 Blob 数据转换为 URL
         return URL.createObjectURL(response.data);
     } catch (error) {
@@ -90,11 +86,59 @@ export const fetchSynthesizedAudioByAwsPolly = async (text: string, useAI: boole
     }
 }
 
-export const fetchSynthesizedAudioJsonByAwsPolly = async (text: string) => {
+export const fetchSynthesizedAudioJsonByAwsPolly = async (text: string, language: string) => {
     try {
         // const response = await axios.post(`${API_BASE_URL}/synthesize-polly-json`, { text });
-        const response = await axios.post(`${API_BASE_URL}/merge`, { text });
+        const response = await axios.post(`${API_BASE_URL}/merge`, { text, language });
         // 直接返回 JSON 数据，例如 speech marks 数组
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching synthesized audio JSON:', error);
+        return null;
+    }
+};
+
+// 测试用，删除
+export const fetchSynthesizedAudioJsonByAwsPollyJa = async (text: string, language: string) => {
+    try {
+        // const response = await axios.post(`${API_BASE_URL}/synthesize-polly-json`, { text });
+        const response = await axios.post(`${API_BASE_URL}/synthesize-polly-json-ja`, { text, language });
+        // 直接返回 JSON 数据，例如 speech marks 数组
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching synthesized audio JSON:', error);
+        return null;
+    }
+};
+
+// 测试用，删除
+export const fetchSynthesizedAudioJsonByAwsPollyEn = async (text: string, language: string) => {
+    try {
+        // const response = await axios.post(`${API_BASE_URL}/synthesize-polly-json`, { text });
+        const response = await axios.post(`${API_BASE_URL}/synthesize-polly-json-en`, { text, language });
+        // 直接返回 JSON 数据，例如 speech marks 数组
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching synthesized audio JSON:', error);
+        return null;
+    }
+};
+
+export const merge2 = async (text: string, language: string) => {
+    try {
+        // const response = await axios.post(`${API_BASE_URL}/synthesize-polly-json`, { text });
+        const response = await axios.post(`${API_BASE_URL}/synthesize-polly-json`, { text, language });
+        // 直接返回 JSON 数据，例如 speech marks 数组
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching synthesized audio JSON:', error);
+        return null;
+    }
+};
+
+export const doubleLanguageAI = async (text: Array<string>, language: string) => {
+    try {
+        const response = await axios.post(`${API_BASE_URL}/double_language`, { text, language });
         return response.data;
     } catch (error) {
         console.error('Error fetching synthesized audio JSON:', error);
