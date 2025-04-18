@@ -1,31 +1,29 @@
 import React, {useRef, useState, useEffect, forwardRef, useImperativeHandle} from 'react';
 import {
-    fetchSynthesizedAudioByAwsPolly,
-    fetchSynthesizedAudioJsonByAwsPolly,
-    fetchSynthesizedAudioJsonByAwsPollyJa
+    fetchSynthesizedAudioByAwsPolly2,
+    fetchSynthesizedAudioJsonByAwsPollyEn
 } from "./api.ts";
-import {Button, Input, message, Switch, Upload} from "antd";
-import { UploadOutlined } from '@ant-design/icons';
+import {Button, Input, Switch} from "antd";
 import {useDispatch, useSelector} from "react-redux";
 import {RootState} from "./store.ts";
-import {updateDisplayedText, updateCurrentTimeJa, updateAlternateState} from "./editorSlice.ts";
+import {updateCurrentTimeEn, updateAlternateState} from "./editorSlice.ts";
 import JSZip from "jszip";
 
-export interface AudioPlayerHandles {
+export interface AudioPlayer2Handles {
     handleStartSomewhere: (startPoint: number) => void;
     play: () => void;
 }
 
 interface AudioPlayerProps {
     onTimeUpdate: (id: number | null) => void;
-    updateAudioJson: (audioJson: Array<never>) => void;
     text: string;
     language: string;
+    updateAudioJson: (audioJson: Array<never>) => void;
     alternatePlay: (ja: boolean) => void;
 }
-//todo 播放英语的时候，日语组件也在重新渲染。解决问题。好像不是，和text组件混淆了。
-const AudioPlayer = forwardRef<AudioPlayerHandles, AudioPlayerProps>((props, ref) => {
-    const {onTimeUpdate, updateAudioJson, text, language, alternatePlay} = props;
+
+const AudioPlayer2 = forwardRef<AudioPlayer2Handles, AudioPlayerProps>((props, ref) => {
+    const {onTimeUpdate, text, language, updateAudioJson, alternatePlay} = props;
     const dispatch = useDispatch();
     const playedSentenceIndex = useRef(0);
     const alternateState = useSelector((state: RootState) => state.editor.alternateState);
@@ -33,15 +31,12 @@ const AudioPlayer = forwardRef<AudioPlayerHandles, AudioPlayerProps>((props, ref
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
-    // const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [playbackRate, setPlaybackRate] = useState(1.0);
-    // const uploadedText = useSelector((state: RootState) => state.editor.uploadedText);
-    // const timeLineList = useSelector((state: RootState) => state.editor.analyzedText)
-    const currentTime = useSelector((state: RootState) => state.editor.currentTimeJa);
+    const currentTime = useSelector((state: RootState) => state.editor.currentTimeEn);
     const [audioFileTitle, setAudioFileTitle] = useState<string | null>("默认标题");
     const setCurrentTime = (time: number) => {
-        dispatch(updateCurrentTimeJa(time));
+        dispatch(updateCurrentTimeEn(time));
     }
     const [autoDownloadOn, setAutoDownloadOn] = useState(false);
     // 处理开关状态变化
@@ -49,54 +44,18 @@ const AudioPlayer = forwardRef<AudioPlayerHandles, AudioPlayerProps>((props, ref
         setAutoDownloadOn(checked);
     };
     useEffect(() => {
-        if (alternateState == 0) {
+        if (alternateState == 1) {
             audioRef.current.play();
         }
     }, [alternateState]);
-
-    const handleBeforeAudioUpload = (file: File) => {
-        const url = URL.createObjectURL(file);
-        setAudioUrl(url);
-        // 阻止 antd 自动上传
-        return false;
-    };
-
-    const handleBeforeJsonUpload = (file: File) => {
-        console.log("进来了么");
-        const isJson = file.type === "application/json" || file.name.endsWith(".json");
-        console.log("isJson:", isJson);
-        if (!isJson) {
-            message.error("请选择 JSON 文件！");
-            return false;
-        }
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const result = e.target?.result as string;
-                console.log("result:", result);
-                const parsed = JSON.parse(result);
-                console.log("parsed:", parsed);
-                message.success("JSON 文件读取成功！");
-            } catch (err) {
-                message.error("解析 JSON 失败！", err);
-                console.error("解析 JSON 失败！", err);
-            }
-        };
-        reader.readAsText(file);
-
-        // ❗️阻止默认上传行为
-        return false;
-    };
-
     // 获取音频
     const processAudio = async () => {
         try {
             // const awsAudioUrl = await fetchSynthesizedAudioByAwsPolly(uploadedText, true);
             // const jaText = timeLineList.map(timeLine => timeLine.word_list.join("")).join("");
-            const awsAudioUrl = await fetchSynthesizedAudioByAwsPolly(text, language);
+            const awsAudioUrl = await fetchSynthesizedAudioByAwsPolly2(text, language);
             setAudioUrl(awsAudioUrl);
-            const audioJson = await fetchSynthesizedAudioJsonByAwsPollyJa(text, language);
+            const audioJson = await fetchSynthesizedAudioJsonByAwsPollyEn(text, language);
             updateAudioJson(audioJson);
             // const jsonResp = await fetchSynthesizedAudioJsonByAwsPolly(uploadedText);
             // console.log("Resp", jsonResp);
@@ -149,7 +108,7 @@ const AudioPlayer = forwardRef<AudioPlayerHandles, AudioPlayerProps>((props, ref
             if (false) {
                 stopBeforeNextSentence(audio.currentTime);
             }
-        }
+        };
         const updateDuration = () => setDuration(audio.duration);
         const handleEnded = () => {
             setIsPlaying(false);
@@ -168,7 +127,9 @@ const AudioPlayer = forwardRef<AudioPlayerHandles, AudioPlayerProps>((props, ref
 
     // 播放 / 暂停
     const togglePlay = () => {
+        console.log("togglePlay ", audioRef.current);
         if (!audioRef.current) return;
+        console.log("togglePlay isPlaying", isPlaying);
         if (isPlaying) {
             audioRef.current.pause();
         } else {
@@ -180,7 +141,7 @@ const AudioPlayer = forwardRef<AudioPlayerHandles, AudioPlayerProps>((props, ref
     const play = () => {
         if (!audioRef.current) return;
         audioRef.current.play();
-        setIsPlaying(false);
+        setIsPlaying(true);
     };
 
     const stopBeforeNextSentence = (time: number) => {
@@ -188,17 +149,17 @@ const AudioPlayer = forwardRef<AudioPlayerHandles, AudioPlayerProps>((props, ref
             playedSentenceIndex.current = 0;
             return;
         }
-        const nextSentenceStartTime = timeLineList[playedSentenceIndex.current + 1].time / 1000;
+        const nextSentenceStartTime = timeLineList[playedSentenceIndex.current + 1].time2 / 1000;
         const timeLeft = nextSentenceStartTime - time;
         if (timeLeft < 0.28) {
             console.log("停下来了，因为timeLeft:", timeLeft);
-            console.log("日语 nextSentenceStartTime", nextSentenceStartTime,
+            console.log("英语 nextSentenceStartTime", nextSentenceStartTime,
                 "time:", time, "下一句:", timeLineList[playedSentenceIndex.current + 1].en_value);
             playedSentenceIndex.current += 1;
             audioRef.current.pause();
             setIsPlaying(false);
-            dispatch(updateAlternateState(1));
-            // alternatePlay(false);
+            dispatch(updateAlternateState(0));
+            // alternatePlay(true);
         }
     }
 
@@ -244,7 +205,6 @@ const AudioPlayer = forwardRef<AudioPlayerHandles, AudioPlayerProps>((props, ref
 
     const handleStartSomewhere = (startPoint: number) => {
         if (audioRef.current) {
-            // console.log("startPoint", startPoint);
             audioRef.current.currentTime = startPoint;
             setCurrentTime(startPoint);
         }
@@ -285,8 +245,7 @@ const AudioPlayer = forwardRef<AudioPlayerHandles, AudioPlayerProps>((props, ref
 
                     {/* 时间显示 */}
                     <div style={{marginTop: '10px'}}>
-                        {/*{formatTime(currentTime)} / {formatTime(duration)}*/}
-                        {(currentTime)} / {(duration)}
+                        {formatTime(currentTime)} / {formatTime(duration)}
                     </div>
 
                     {/* 倍速调节 */}
@@ -321,18 +280,8 @@ const AudioPlayer = forwardRef<AudioPlayerHandles, AudioPlayerProps>((props, ref
                 onChange={handleSwitchChange}
             />
             <p>是否下载音频文件到本地: {autoDownloadOn ? '是' : '否'}</p>
-            <Upload
-                accept="audio/*"
-                beforeUpload={handleBeforeAudioUpload}
-                showUploadList={false}
-            >
-                <Button icon={<UploadOutlined />}>选择音频文件</Button>
-            </Upload>
-            <Upload beforeUpload={handleBeforeJsonUpload} showUploadList={false}>
-                <Button icon={<UploadOutlined />}>上传 JSON 文件</Button>
-            </Upload>
         </div>
     );
 });
 
-export default AudioPlayer;
+export default AudioPlayer2;

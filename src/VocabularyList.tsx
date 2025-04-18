@@ -14,8 +14,7 @@ const VocabularyList: React.FC = () => {
 
     useEffect(() => {
         if (vocabulary) {
-            console.log("得到的vocabulary", vocabulary);
-            fetchSynthesizedAudioByAwsPolly(vocabulary.word, false).then(audioUrl => {
+            fetchSynthesizedAudioByAwsPolly(vocabulary.word, "ja").then(audioUrl => {
                 if (audioUrl) {
                     if (audio) {
                         audio.pause(); // 停止之前的音频
@@ -39,8 +38,7 @@ const VocabularyList: React.FC = () => {
     };
 
     return (
-        // marginTop: 25, marginLeft: 0
-        <div style={{width:'100%'}}>
+        <div style={{maxWidth:'800px', maxHeight:'500px', overflowY: 'auto'}}>
             <span style={{marginLeft: 10, fontSize: 25}}>{vocabulary?.word}</span>
             <span style={{marginLeft: 15, fontSize: 20}}>{vocabulary?.kana}</span>
             <button onClick={handleAddWord} disabled={added}>
@@ -48,7 +46,7 @@ const VocabularyList: React.FC = () => {
             </button>
             <List
                 itemLayout="vertical"
-                style={{marginTop: 10, width:'100%', overflowY: "auto", height: 600}}//width: 300,
+                style={{marginTop: 10, width:'100%', overflowY: "auto" }}//width: 300,
                 bordered
                 dataSource={vocabulary?.structure_list ?? []}
                 renderItem={(structure) => (
@@ -63,7 +61,7 @@ const VocabularyList: React.FC = () => {
                     // </List.Item>
                 )}
             />
-            <SearchWordComponent />
+            {/*<SearchWordComponent />*/}
         </div>
     );
 };
