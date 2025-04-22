@@ -28,6 +28,7 @@ const ImageOcrUploader = () => {
     const [ocrText, setOcrText] = useState("");
     const [reviewState, setReviewState] = useState<ReviewState>({summary: undefined, detail: []});
     const [reviewContentState, setReviewContentState] = useState<string>("");
+    const [parsedText, setParsedText] = useState<string>("");
 
     const handleUpload = async () => {
         if (fileList.length === 0) {
@@ -44,6 +45,7 @@ const ImageOcrUploader = () => {
         setReviewContentState("");
         try {
             const data = await parsePicture(formData);
+            setParsedText(data.text);
             const reviewResult = await reviewComposition(data.text);
             setOcrText(data.text);
             setReviewState(reviewResult);
@@ -88,6 +90,9 @@ const ImageOcrUploader = () => {
                 </Col>
             </Row>
             <div style={{marginTop: 5}}>
+                <Paragraph>
+                    {parsedText}
+                </Paragraph>
                 {loading ? (
                     <Spin style={{marginLeft: 0}}/>
                 ) : (reviewState.detail?.length > 0 ? (
