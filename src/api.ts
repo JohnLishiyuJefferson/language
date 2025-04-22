@@ -1,8 +1,8 @@
 import axios from "axios";
 
 // const API_BASE_URL = "http://localhost:8000"; // 你的 Flask 服务器地址
-// const API_BASE_URL = "http://localhost:8001"; // 你的 Flask 服务器地址
-const API_BASE_URL = "http://3.27.229.201:8001";
+const API_BASE_URL = "http://localhost:8001"; // 你的 Flask 服务器地址
+// const API_BASE_URL = "http://3.27.229.201:8001";
 
 export const processText = async (jaText: Array<string>) => {
     try {
@@ -187,5 +187,10 @@ export const parsePicture = async (formData: FormData) => {
     const response = await axios.post(`${API_BASE_URL}/ocr`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
     });
+    return response.data;
+}
+
+export const reviewComposition = async (composition: string) => {
+    const response = await axios.post(`${API_BASE_URL}/review`, {composition});
     return response.data;
 }

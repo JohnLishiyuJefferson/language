@@ -15,19 +15,20 @@ function App() {
                 navigate("/login");
             }} style={{position: "fixed", right: 5, top: 5}}>登出
             </button>
-            <div style={{padding: 5, margin: 5, marginTop: 30}}>
+            <div style={{padding: 5, margin: 5, marginTop: 30, width: "100%"}}>
 
-                <Row gutter={16}>
+                {/*<Row gutter={16}>*/}
                     {/* 中间区域 */}
-                    <Col span={24}>
+                    {/*<Col span={24}>*/}
                         <ImageOcrUploader />
+
                         {/*<AnalyzedText wordsPerPage={450}/>*/}
-                    </Col>
+                    {/*</Col>*/}
                     {/*<Col span={9}>*/}
                     {/*    <AISpace/>*/}
                     {/*    <VideoPlayer />*/}
                     {/*</Col>*/}
-                </Row>
+                {/*</Row>*/}
             </div>
         </div>
     );
