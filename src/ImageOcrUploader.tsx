@@ -3,7 +3,7 @@ import {Upload, Button, message, Typography, Spin, Col, Row, Divider} from "antd
 import {UploadOutlined} from "@ant-design/icons";
 import {parsePicture, reviewComposition} from "./api.ts";
 
-const {Text} = Typography;
+const {Text, Paragraph} = Typography;
 
 interface Detail {
     sentence: string;
@@ -27,6 +27,7 @@ const ImageOcrUploader = () => {
     const [loading, setLoading] = useState(false);
     const [ocrText, setOcrText] = useState("");
     const [reviewState, setReviewState] = useState<ReviewState>({summary: undefined, detail: []});
+    const [reviewContentState, setReviewContentState] = useState<string>("");
 
     const handleUpload = async () => {
         if (fileList.length === 0) {
@@ -39,12 +40,14 @@ const ImageOcrUploader = () => {
 
         setLoading(true);
         setOcrText("");
-
+        setReviewState({summary: undefined, detail: []});
+        setReviewContentState("");
         try {
             const data = await parsePicture(formData);
             const reviewResult = await reviewComposition(data.text);
             setOcrText(data.text);
             setReviewState(reviewResult);
+            setReviewContentState(reviewResult);
         } catch (error) {
             console.error(error);
             message.error("解析失败，请检查服务端是否已启动");
@@ -85,10 +88,9 @@ const ImageOcrUploader = () => {
                 </Col>
             </Row>
             <div style={{marginTop: 5}}>
-                {/*<Text strong>识别结果：</Text>*/}
                 {loading ? (
                     <Spin style={{marginLeft: 0}}/>
-                ) : (
+                ) : (reviewState.detail?.length > 0 ? (
                     <div>
                         <Divider/>
                         <Text style={{marginRight: 20}}>分数：{reviewState?.summary?.score}</Text>
@@ -104,7 +106,11 @@ const ImageOcrUploader = () => {
                                 <Col className="review" span={24}>改写理由：{item.rewrite_reason}</Col>
                             </Row>
                         ))}
-                    </div>
+                    </div>) : (
+                        <Paragraph>
+                            {reviewContentState}
+                        </Paragraph>
+                    )
                 )}
             </div>
         </div>
