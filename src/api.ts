@@ -1,8 +1,8 @@
 import axios from "axios";
 
 // const API_BASE_URL = "http://localhost:8000"; // 你的 Flask 服务器地址
-const API_BASE_URL = "http://localhost:8001"; // 你的 Flask 服务器地址
-// const API_BASE_URL = "http://3.27.229.201:8001";
+// const API_BASE_URL = "http://localhost:8001"; // 你的 Flask 服务器地址
+const API_BASE_URL = "http://3.107.35.216:8001";
 
 export const processText = async (jaText: Array<string>) => {
     try {
