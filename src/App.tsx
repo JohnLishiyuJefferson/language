@@ -1,10 +1,18 @@
-import JapaneseTalk from "./JapaneseTalk.tsx";
+import JapaneseTalk from "./PracticePage.tsx";
+import HistoryPage from "./HistoryPage.tsx";
+import {useState} from "react";
 
 
 function App() {
+    const [currentPage, setCurrentPage] = useState('practice');
+
     return (
         <div>
-            <JapaneseTalk />
+            {currentPage === 'practice' ? (
+                <JapaneseTalk onNavigateToHistory={() => setCurrentPage('history')} />
+            ) : (
+                <HistoryPage onNavigateToPractice={() => setCurrentPage('practice')} />
+            )}
         </div>
     );
 }

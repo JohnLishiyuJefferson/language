@@ -258,7 +258,7 @@ spinnerStyle.textContent = `
 `;
 document.head.appendChild(spinnerStyle);
 
-const JapanesePracticeApp = () => {
+const JapanesePracticeApp = ({ onNavigateToHistory }) => {
     const [currentLevel, setCurrentLevel] = useState('beginner');
     const [currentQuestion, setCurrentQuestion] = useState(null);
     const [userAnswer, setUserAnswer] = useState('');
@@ -375,20 +375,30 @@ const JapanesePracticeApp = () => {
                 <div style={styles.card}>
                     <div style={styles.header}>
                         <h1 style={styles.title}>🇯🇵 日语表达练习</h1>
-                        <div style={styles.levelSelector}>
-                            {['beginner', 'intermediate', 'advanced'].map(level => (
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                            <div style={styles.levelSelector}>
+                                {['beginner', 'intermediate', 'advanced'].map(level => (
+                                    <button
+                                        key={level}
+                                        style={{
+                                            ...styles.levelBtn,
+                                            ...(currentLevel === level ? styles.levelBtnActive : {})
+                                        }}
+                                        onClick={() => changeLevel(level)}
+                                        disabled={loading}
+                                    >
+                                        {level === 'beginner' ? '初级' : level === 'intermediate' ? '中级' : '高级'}
+                                    </button>
+                                ))}
+                            </div>
+                            {onNavigateToHistory && (
                                 <button
-                                    key={level}
-                                    style={{
-                                        ...styles.levelBtn,
-                                        ...(currentLevel === level ? styles.levelBtnActive : {})
-                                    }}
-                                    onClick={() => changeLevel(level)}
-                                    disabled={loading}
+                                    style={{ ...styles.btn, ...styles.btnSecondary }}
+                                    onClick={onNavigateToHistory}
                                 >
-                                    {level === 'beginner' ? '初级' : level === 'intermediate' ? '中级' : '高级'}
+                                    📊 学习记录
                                 </button>
-                            ))}
+                            )}
                         </div>
                     </div>
                 </div>
