@@ -3,90 +3,199 @@ import './PracticePage.css';
 
 const API_BASE_URL = 'http://localhost:8000';
 
-const JapanesePracticeApp = ({ onNavigateToHistory }) => {
-    const [currentLevel, setCurrentLevel] = useState('beginner');
+const PracticePage = ({ onNavigateToHistory }) => {
     const [currentQuestion, setCurrentQuestion] = useState(null);
     const [userAnswer, setUserAnswer] = useState('');
     const [evaluation, setEvaluation] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [loadingText, setLoadingText] = useState('');
+    const [generating, setGenerating] = useState(false);
     const [error, setError] = useState('');
+    const [selectedLevel, setSelectedLevel] = useState('beginner');
+    const [pendingCount, setPendingCount] = useState(0);
+    const [showSuccess, setShowSuccess] = useState(false);
 
-    // 加载题目
-    const loadQuestion = async (level = currentLevel) => {
+    // 初始化：检查题库并生成题目
+    useEffect(() => {
+        initializeQuestionBank();
+    }, [selectedLevel]);
+
+    // 初始化题库
+    const initializeQuestionBank = async () => {
         try {
-            setLoading(true);
-            setLoadingText('AI正在生成新题目...');
-            setError('');
-            setEvaluation(null);
-            setUserAnswer('');
+            await checkAndGenerateQuestions();
+            await fetchNextQuestion();
+        } catch (err) {
+            console.error('初始化失败:', err);
+        }
+    };
 
-            const response = await fetch(`${API_BASE_URL}/api/question`, {
+    // 检查并生成题目
+    const checkAndGenerateQuestions = async (threshold = 0) => {
+        try {
+            // 获取待完成题目数量
+            const response = await fetch(
+                `${API_BASE_URL}/api/questions/pending/count?level=${selectedLevel}`
+            );
+            const data = await response.json();
+            setPendingCount(data.pending_count);
+
+            // 如果题目不足，则生成新题目
+            if (data.pending_count <= threshold) {
+                await batchGenerateQuestions();
+            }
+        } catch (err) {
+            console.error('检查题库失败:', err);
+        }
+    };
+
+    // 批量生成题目
+    const batchGenerateQuestions = async () => {
+        setGenerating(true);
+        setError('');
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/questions/batch`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ level })
+                body: JSON.stringify({
+                    level: selectedLevel,
+                    count: 5
+                })
             });
+
+            if (!response.ok) throw new Error('生成题目失败');
+
+            const data = await response.json();
+            console.log(`✅ 成功生成 ${data.count} 道题目`);
+
+            // 更新待完成数量
+            setPendingCount(data.count);
+
+            // 显示成功提示
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 2000);
+
+        } catch (err) {
+            setError(err.message || '生成题目失败，请重试');
+            console.error('生成题目失败:', err);
+        } finally {
+            setGenerating(false);
+        }
+    };
+
+    // 获取下一道题目
+    const fetchNextQuestion = async () => {
+        setLoading(true);
+        setError('');
+        setEvaluation(null);
+        setUserAnswer('');
+
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/api/questions/next?level=${selectedLevel}`
+            );
 
             if (!response.ok) throw new Error('获取题目失败');
 
             const data = await response.json();
-            setCurrentQuestion(data);
+
+            if (!data.has_question) {
+                // 没有题目，触发生成
+                setError('题库为空，正在生成新题目...');
+                await batchGenerateQuestions();
+                // 重新获取
+                const retryResponse = await fetch(
+                    `${API_BASE_URL}/api/questions/next?level=${selectedLevel}`
+                );
+                const retryData = await retryResponse.json();
+                if (retryData.has_question) {
+                    setCurrentQuestion(retryData.question);
+                    setError('');
+                }
+            } else {
+                setCurrentQuestion(data.question);
+            }
+
+            // 更新待完成数量
+            await updatePendingCount();
+
         } catch (err) {
-            setError(err.message);
+            setError(err.message || '获取题目失败');
+            console.error('获取题目失败:', err);
         } finally {
             setLoading(false);
-            setLoadingText('');
+        }
+    };
+
+    // 更新待完成数量
+    const updatePendingCount = async () => {
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/api/questions/pending/count?level=${selectedLevel}`
+            );
+            const data = await response.json();
+            setPendingCount(data.pending_count);
+        } catch (err) {
+            console.error('更新数量失败:', err);
         }
     };
 
     // 提交答案
-    const submitAnswer = async () => {
+    const handleSubmit = async () => {
         if (!userAnswer.trim()) {
-            setError('请先输入答案');
-            setTimeout(() => setError(''), 3000);
+            setError('请输入答案');
             return;
         }
 
+        if (!currentQuestion || !currentQuestion._id) {
+            setError('题目信息异常');
+            return;
+        }
+
+        setLoading(true);
+        setError('');
+
         try {
-            setLoading(true);
-            setLoadingText('AI正在评估你的答案...');
-            setError('');
+            const response = await fetch(
+                `${API_BASE_URL}/api/questions/${currentQuestion._id}/submit`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_answer: userAnswer
+                    })
+                }
+            );
 
-            const response = await fetch(`${API_BASE_URL}/api/evaluate`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chinese_prompt: currentQuestion.chinese,
-                    user_answer: userAnswer,
-                    context: currentQuestion.context || '',
-                    word: currentQuestion.word || '',
-                    kana: currentQuestion.kana || '',
-                    meaning: currentQuestion.meaning || ''
-                })
-            });
-
-            if (!response.ok) throw new Error('评估失败');
+            if (!response.ok) throw new Error('提交失败');
 
             const data = await response.json();
-            setEvaluation(data);
+            setEvaluation(data.evaluation);
+
+            // 提交后自动检查是否需要补充题目（当剩余<2道时）
+            await checkAndGenerateQuestions(2);
+
         } catch (err) {
-            setError(err.message);
+            setError(err.message || '提交失败，请重试');
+            console.error('提交失败:', err);
         } finally {
             setLoading(false);
-            setLoadingText('');
         }
     };
 
-    // 切换难度
-    const changeLevel = (level) => {
-        setCurrentLevel(level);
-        loadQuestion(level);
+    // 下一题
+    const handleNext = async () => {
+        await fetchNextQuestion();
     };
 
-    // 初始加载
-    useEffect(() => {
-        loadQuestion();
-    }, []);
+    // 切换难度
+    const handleLevelChange = async (level) => {
+        setSelectedLevel(level);
+        setCurrentQuestion(null);
+        setEvaluation(null);
+        setUserAnswer('');
+        setError('');
+    };
 
     // 获取分数颜色
     const getScoreColor = (score) => {
@@ -95,173 +204,223 @@ const JapanesePracticeApp = ({ onNavigateToHistory }) => {
         return '#dc3545';
     };
 
-    // 获取表情
-    const getEmoji = (score) => {
-        if (score >= 9) return '🎉';
-        if (score >= 7) return '👍';
-        if (score >= 5) return '💪';
-        return '📚';
-    };
-
     return (
-        <div className="app-body">
-            {/* 加载遮罩 */}
-            {loading && (
-                <div className="loading-overlay">
-                    <div className="loading-box">
-                        <div className="loading-spinner"></div>
-                        <div className="loading-text">{loadingText}</div>
-                    </div>
-                </div>
-            )}
-
-            <div className="app-container">
+        <div className="practice-container">
+            <div className="practice-main">
                 {/* 头部 */}
-                <div className="app-card">
-                    <div className="app-header">
-                        <h1 className="app-title">🇯🇵 日语表达练习</h1>
-                        <div className="header-controls">
-                            <div className="level-selector">
-                                {['beginner', 'intermediate', 'advanced'].map(level => (
-                                    <button
-                                        key={level}
-                                        className={`level-btn ${currentLevel === level ? 'level-btn-active' : ''}`}
-                                        onClick={() => changeLevel(level)}
-                                        disabled={loading}
-                                    >
-                                        {level === 'beginner' ? '初级' : level === 'intermediate' ? '中级' : '高级'}
-                                    </button>
-                                ))}
-                            </div>
+                <div className="practice-card">
+                    <div className="practice-header">
+                        <h1 className="practice-title">🎯 日语练习</h1>
+                        <div className="header-actions">
                             {onNavigateToHistory && (
                                 <button
-                                    className="app-btn btn-secondary"
+                                    className="btn btn-secondary"
                                     onClick={onNavigateToHistory}
                                 >
-                                    📊 学习记录
+                                    📊 查看记录
                                 </button>
                             )}
                         </div>
                     </div>
+
+                    {/* 难度选择 */}
+                    <div className="level-selector">
+                        {['beginner', 'intermediate', 'advanced'].map((level) => (
+                            <button
+                                key={level}
+                                className={`level-btn ${selectedLevel === level ? 'active' : ''}`}
+                                onClick={() => handleLevelChange(level)}
+                                disabled={loading || generating}
+                            >
+                                {level === 'beginner' && '🌱 初级'}
+                                {level === 'intermediate' && '🌿 中级'}
+                                {level === 'advanced' && '🌳 高级'}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* 题库状态 */}
+                    <div className="question-bank-status">
+                        <div className="status-info">
+                            <span className="status-label">题库状态:</span>
+                            <span className="status-value">
+                                剩余 <strong>{pendingCount}</strong> 道题目
+                            </span>
+                        </div>
+                        {pendingCount < 3 && (
+                            <button
+                                className="btn btn-primary btn-sm"
+                                onClick={() => batchGenerateQuestions()}
+                                disabled={generating}
+                            >
+                                {generating ? '生成中...' : '➕ 生成更多'}
+                            </button>
+                        )}
+                    </div>
                 </div>
 
-                {/* 题目卡片 */}
-                {!evaluation && currentQuestion && (
-                    <div className="app-card">
-                        <div className="question-card">
-                            <div className="question-badge">📝 请将以下中文翻译成日语</div>
-                            <div className="question-text">{currentQuestion.chinese}</div>
-                            {currentQuestion.context && (
-                                <div className="context-text">💡 {currentQuestion.context}</div>
-                            )}
-                        </div>
-
-                        <div className="input-section">
-                            <label className="input-label">✏️ 你的答案:</label>
-                            <div className="input-group">
-                                <input
-                                    type="text"
-                                    className="answer-input"
-                                    value={userAnswer}
-                                    onChange={(e) => setUserAnswer(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && !loading && submitAnswer()}
-                                    placeholder="请输入日语..."
-                                    disabled={loading}
-                                    autoFocus
-                                />
-                                <button
-                                    className="app-btn btn-primary"
-                                    onClick={submitAnswer}
-                                    disabled={loading || !userAnswer.trim()}
-                                >
-                                    提交
-                                </button>
-                            </div>
-                            <div className="input-hint">💡 提示: 按 Enter 键快速提交</div>
-                        </div>
-
-                        {error && <div className="error-box">⚠️ {error}</div>}
+                {/* 成功提示 */}
+                {showSuccess && (
+                    <div className="success-toast">
+                        ✅ 题目生成成功！
                     </div>
                 )}
 
-                {/* 评估结果卡片 */}
-                {evaluation && (
-                    <div className="app-card">
-                        <div className="evaluation-card">
-                            <div className="eval-header">
-                                <div className="eval-emoji">{getEmoji(evaluation.score)}</div>
-                                <div className="eval-header-content">
-                                    <div className="eval-title">{evaluation.overall || '评估完成'}</div>
-                                    <div>
-                                        得分:{' '}
-                                        <span className="eval-score" style={{ color: getScoreColor(evaluation.score) }}>
-                                            {evaluation.score}
-                                        </span>{' '}
-                                        / 10
-                                    </div>
-                                </div>
+                {/* 生成中状态 */}
+                {generating && (
+                    <div className="practice-card">
+                        <div className="generating-box">
+                            <div className="spinner"></div>
+                            <div>正在批量生成题目...</div>
+                            <div className="generating-hint">
+                                一次生成5道题，只需等待一次 ⚡
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* 错误提示 */}
+                {error && <div className="error-box">⚠️ {error}</div>}
+
+                {/* 题目区域 */}
+                {!generating && currentQuestion && (
+                    <div className="practice-card">
+                        <div className="question-section">
+                            <div className="question-header">
+                                <h3 className="section-title">📝 翻译下列句子</h3>
+                                {/*{currentQuestion.question.word && (*/}
+                                {/*    <div className="word-badge">*/}
+                                {/*        {currentQuestion.question.word} ({currentQuestion.question.kana})*/}
+                                {/*        - {currentQuestion.question.meaning}*/}
+                                {/*    </div>*/}
+                                {/*)}*/}
                             </div>
 
-                            {/* 你的答案 */}
-                            <div className="eval-section">
-                                <div className="eval-section-title">✍️ 你的答案</div>
-                                <div className="eval-content">{evaluation.user_answer}</div>
+                            <div className="chinese-text">
+                                {currentQuestion.question.chinese}
                             </div>
 
-                            {/* 语法分析 */}
-                            {evaluation.grammar_analysis && (
-                                <div className="eval-section">
-                                    <div className="eval-section-title">📝 语法分析</div>
-                                    <div className="eval-content">{evaluation.grammar_analysis}</div>
+                            {currentQuestion.question.context && (
+                                <div className="context-hint">
+                                    💡 使用场景: {currentQuestion.question.context}
                                 </div>
                             )}
+                        </div>
 
-                            {/* 词汇分析 */}
-                            {evaluation.vocabulary_analysis && (
-                                <div className="eval-section">
-                                    <div className="eval-section-title">📖 词汇分析</div>
-                                    <div className="eval-content">{evaluation.vocabulary_analysis}</div>
-                                </div>
-                            )}
-
-                            {/* 标准答案 */}
-                            {evaluation.standard_answers && evaluation.standard_answers.length > 0 && (
-                                <div className="eval-section">
-                                    <div className="eval-section-title">✅ 标准答案</div>
-                                    {evaluation.standard_answers.map((answer, idx) => (
-                                        <div key={idx} className="standard-answer">{answer}</div>
-                                    ))}
-                                </div>
-                            )}
-
-                            {/* 改进建议 */}
-                            {evaluation.suggestions && evaluation.suggestions.length > 0 && (
-                                <div className="eval-section">
-                                    <div className="eval-section-title">💡 改进建议</div>
-                                    <ul className="suggestion-list">
-                                        {evaluation.suggestions.map((suggestion, idx) => (
-                                            <li key={idx} className="suggestion-item">
-                                                💡 {suggestion}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-
-                            {/* 鼓励语 */}
-                            {evaluation.praise && (
-                                <div className="praise-box">{evaluation.praise}</div>
-                            )}
-
-                            <div className="button-group">
-                                <button
-                                    className="app-btn btn-secondary"
-                                    onClick={() => loadQuestion()}
+                        {/* 答题区域 */}
+                        {!evaluation && (
+                            <div className="answer-section">
+                                <textarea
+                                    className="answer-input"
+                                    placeholder="请输入你的日语翻译..."
+                                    value={userAnswer}
+                                    onChange={(e) => setUserAnswer(e.target.value)}
                                     disabled={loading}
+                                    rows={4}
+                                />
+                                <button
+                                    className="btn btn-primary btn-large"
+                                    onClick={handleSubmit}
+                                    disabled={loading || !userAnswer.trim()}
                                 >
-                                    下一题
+                                    {loading ? '评估中...' : '✅ 提交答案'}
                                 </button>
                             </div>
+                        )}
+
+                        {/* 评估结果 */}
+                        {evaluation && (
+                            <div className="evaluation-section">
+                                <div className="score-display">
+                                    <div
+                                        className="score-circle"
+                                        style={{
+                                            background: getScoreColor(evaluation.score),
+                                            boxShadow: `0 4px 12px ${getScoreColor(evaluation.score)}40`
+                                        }}
+                                    >
+                                        <div className="score-number">{evaluation.score}</div>
+                                        <div className="score-text">分</div>
+                                    </div>
+                                    <div className="score-detail">
+                                        <div className="overall-text">{evaluation.overall}</div>
+                                        <div className="user-answer-display">
+                                            你的答案: {userAnswer}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 详细分析 */}
+                                <div className="analysis-grid">
+                                    {evaluation.grammar_analysis && (
+                                        <div className="analysis-item">
+                                            <div className="analysis-title">📝 语法分析</div>
+                                            <div className="analysis-content">
+                                                {evaluation.grammar_analysis}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {evaluation.vocabulary_analysis && (
+                                        <div className="analysis-item">
+                                            <div className="analysis-title">📖 词汇分析</div>
+                                            <div className="analysis-content">
+                                                {evaluation.vocabulary_analysis}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* 标准答案 */}
+                                {evaluation.standard_answers && evaluation.standard_answers.length > 0 && (
+                                    <div className="standard-answers">
+                                        <div className="section-title">✅ 标准答案</div>
+                                        {evaluation.standard_answers.map((answer, idx) => (
+                                            <div key={idx} className="standard-answer-item">
+                                                {answer}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* 改进建议 */}
+                                {evaluation.suggestions && evaluation.suggestions.length > 0 && (
+                                    <div className="suggestions">
+                                        <div className="section-title">💡 改进建议</div>
+                                        <ul className="suggestion-list">
+                                            {evaluation.suggestions.map((suggestion, idx) => (
+                                                <li key={idx}>{suggestion}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+
+                                {/* 鼓励语 */}
+                                {evaluation.praise && (
+                                    <div className="praise-box">
+                                        💬 {evaluation.praise}
+                                    </div>
+                                )}
+
+                                {/* 下一题按钮 */}
+                                <button
+                                    className="btn btn-primary btn-large"
+                                    onClick={handleNext}
+                                    disabled={loading}
+                                >
+                                    ➡️ 下一题
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* 加载状态 */}
+                {loading && !generating && !currentQuestion && (
+                    <div className="practice-card">
+                        <div className="loading-box">
+                            <div className="spinner"></div>
+                            <div>加载中...</div>
                         </div>
                     </div>
                 )}
@@ -270,4 +429,4 @@ const JapanesePracticeApp = ({ onNavigateToHistory }) => {
     );
 };
 
-export default JapanesePracticeApp;
+export default PracticePage;
