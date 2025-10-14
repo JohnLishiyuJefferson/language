@@ -8,11 +8,9 @@ const PracticePage = ({ onNavigateToHistory }) => {
     const [userAnswer, setUserAnswer] = useState('');
     const [evaluation, setEvaluation] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [generating, setGenerating] = useState(false);
     const [error, setError] = useState('');
     const [selectedLevel, setSelectedLevel] = useState('beginner');
     const [pendingCount, setPendingCount] = useState(0);
-    const [showSuccess, setShowSuccess] = useState(false);
 
     // 初始化：检查题库并生成题目
     useEffect(() => {
@@ -22,64 +20,17 @@ const PracticePage = ({ onNavigateToHistory }) => {
     // 初始化题库
     const initializeQuestionBank = async () => {
         try {
-            await checkAndGenerateQuestions();
-            await fetchNextQuestion();
-        } catch (err) {
-            console.error('初始化失败:', err);
-        }
-    };
-
-    // 检查并生成题目
-    const checkAndGenerateQuestions = async (threshold = 0) => {
-        try {
-            // 获取待完成题目数量
+            // 检查题库数量
             const response = await fetch(
                 `${API_BASE_URL}/api/questions/pending/count?level=${selectedLevel}`
             );
             const data = await response.json();
             setPendingCount(data.pending_count);
 
-            // 如果题目不足，则生成新题目
-            if (data.pending_count <= threshold) {
-                await batchGenerateQuestions();
-            }
+            // 获取第一道题
+            await fetchNextQuestion();
         } catch (err) {
-            console.error('检查题库失败:', err);
-        }
-    };
-
-    // 批量生成题目
-    const batchGenerateQuestions = async () => {
-        setGenerating(true);
-        setError('');
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/questions/batch`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    level: selectedLevel,
-                    count: 5
-                })
-            });
-
-            if (!response.ok) throw new Error('生成题目失败');
-
-            const data = await response.json();
-            console.log(`✅ 成功生成 ${data.count} 道题目`);
-
-            // 更新待完成数量
-            setPendingCount(data.count);
-
-            // 显示成功提示
-            setShowSuccess(true);
-            setTimeout(() => setShowSuccess(false), 2000);
-
-        } catch (err) {
-            setError(err.message || '生成题目失败，请重试');
-            console.error('生成题目失败:', err);
-        } finally {
-            setGenerating(false);
+            console.error('初始化失败:', err);
         }
     };
 
@@ -98,26 +49,13 @@ const PracticePage = ({ onNavigateToHistory }) => {
             if (!response.ok) throw new Error('获取题目失败');
 
             const data = await response.json();
-
-            if (!data.has_question) {
-                // 没有题目，触发生成
-                setError('题库为空，正在生成新题目...');
-                await batchGenerateQuestions();
-                // 重新获取
-                const retryResponse = await fetch(
-                    `${API_BASE_URL}/api/questions/next?level=${selectedLevel}`
-                );
-                const retryData = await retryResponse.json();
-                if (retryData.has_question) {
-                    setCurrentQuestion(retryData.question);
-                    setError('');
-                }
+            setCurrentQuestion(data.question);
+            // 更新待完成数量（使用返回的数据，避免额外请求）
+            if (data.pending_count !== undefined) {
+                setPendingCount(data.pending_count);
             } else {
-                setCurrentQuestion(data.question);
+                await updatePendingCount();
             }
-
-            // 更新待完成数量
-            await updatePendingCount();
 
         } catch (err) {
             setError(err.message || '获取题目失败');
@@ -172,8 +110,8 @@ const PracticePage = ({ onNavigateToHistory }) => {
             const data = await response.json();
             setEvaluation(data.evaluation);
 
-            // 提交后自动检查是否需要补充题目（当剩余<2道时）
-            await checkAndGenerateQuestions(2);
+            // 提交后更新待完成数量
+            await updatePendingCount();
 
         } catch (err) {
             setError(err.message || '提交失败，请重试');
@@ -230,7 +168,7 @@ const PracticePage = ({ onNavigateToHistory }) => {
                                 key={level}
                                 className={`level-btn ${selectedLevel === level ? 'active' : ''}`}
                                 onClick={() => handleLevelChange(level)}
-                                disabled={loading || generating}
+                                disabled={loading}
                             >
                                 {level === 'beginner' && '🌱 初级'}
                                 {level === 'intermediate' && '🌿 中级'}
@@ -238,62 +176,17 @@ const PracticePage = ({ onNavigateToHistory }) => {
                             </button>
                         ))}
                     </div>
-
-                    {/* 题库状态 */}
-                    <div className="question-bank-status">
-                        <div className="status-info">
-                            <span className="status-label">题库状态:</span>
-                            <span className="status-value">
-                                剩余 <strong>{pendingCount}</strong> 道题目
-                            </span>
-                        </div>
-                        {pendingCount < 3 && (
-                            <button
-                                className="btn btn-primary btn-sm"
-                                onClick={() => batchGenerateQuestions()}
-                                disabled={generating}
-                            >
-                                {generating ? '生成中...' : '➕ 生成更多'}
-                            </button>
-                        )}
-                    </div>
                 </div>
-
-                {/* 成功提示 */}
-                {showSuccess && (
-                    <div className="success-toast">
-                        ✅ 题目生成成功！
-                    </div>
-                )}
-
-                {/* 生成中状态 */}
-                {generating && (
-                    <div className="practice-card">
-                        <div className="generating-box">
-                            <div className="spinner"></div>
-                            <div>正在批量生成题目...</div>
-                            <div className="generating-hint">
-                                一次生成5道题，只需等待一次 ⚡
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 {/* 错误提示 */}
                 {error && <div className="error-box">⚠️ {error}</div>}
 
                 {/* 题目区域 */}
-                {!generating && currentQuestion && (
+                {currentQuestion && (
                     <div className="practice-card">
                         <div className="question-section">
                             <div className="question-header">
                                 <h3 className="section-title">📝 翻译下列句子</h3>
-                                {/*{currentQuestion.question.word && (*/}
-                                {/*    <div className="word-badge">*/}
-                                {/*        {currentQuestion.question.word} ({currentQuestion.question.kana})*/}
-                                {/*        - {currentQuestion.question.meaning}*/}
-                                {/*    </div>*/}
-                                {/*)}*/}
                             </div>
 
                             <div className="chinese-text">
@@ -416,7 +309,7 @@ const PracticePage = ({ onNavigateToHistory }) => {
                 )}
 
                 {/* 加载状态 */}
-                {loading && !generating && !currentQuestion && (
+                {loading && !currentQuestion && (
                     <div className="practice-card">
                         <div className="loading-box">
                             <div className="spinner"></div>

@@ -126,6 +126,19 @@
     font-size: 18px;
 }
 
+.status-hint {
+    font-size: 13px;
+    color: #ffc107;
+    font-weight: 600;
+    margin-left: 8px;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
 /* 成功提示 */
 .success-toast {
     position: fixed;
