@@ -1,18 +1,38 @@
 import JapaneseTalk from "./PracticePage.tsx";
 import HistoryPage from "./HistoryPage.tsx";
 import {useState} from "react";
+import {TaskListPage} from "./TaskListPage.tsx";
+import {TaskDetailPage} from "./TaskDetailPage.tsx";
 
 
 function App() {
     const [currentPage, setCurrentPage] = useState('practice');
+    const [currentView, setCurrentView] = useState<'list' | 'detail'>('list');
+    const [selectedTaskId, setSelectedTaskId] = useState<string>('');
+
+    const handleViewTask = (taskId: string) => {
+        setSelectedTaskId(taskId);
+        setCurrentView('detail');
+    };
+
+    const handleBackToList = () => {
+        setCurrentView('list');
+        setSelectedTaskId('');
+    };
+
 
     return (
         <div>
-            {currentPage === 'practice' ? (
-                <JapaneseTalk onNavigateToHistory={() => setCurrentPage('history')} />
+            {currentView === 'list' ? (
+                <TaskListPage onViewTask={handleViewTask} />
             ) : (
-                <HistoryPage onNavigateToPractice={() => setCurrentPage('practice')} />
+                <TaskDetailPage taskId={selectedTaskId} onBack={handleBackToList} />
             )}
+            {/*{currentPage === 'practice' ? (*/}
+            {/*    <JapaneseTalk onNavigateToHistory={() => setCurrentPage('history')} />*/}
+            {/*) : (*/}
+            {/*    <HistoryPage onNavigateToPractice={() => setCurrentPage('practice')} />*/}
+            {/*)}*/}
         </div>
     );
 }
