@@ -58,6 +58,9 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({ taskId, onBack }
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [playbackRate, setPlaybackRate] = useState(1.0);
+    const [playMode, setPlayMode] = useState<'sequential' | 'loop'>('sequential');
+    const [targetSentenceIndex, setTargetSentenceIndex] = useState<number | null>(null); // 手动跳句标记
+
     const audioRef = useRef<HTMLAudioElement>(null);
     const sentenceRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
 
@@ -118,10 +121,17 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({ taskId, onBack }
 
         const prevIndex = Math.max(0, currentSentenceIndex - 1);
         const prevTime = task.speech_marks[prevIndex].time / 1000;
+
+        setTargetSentenceIndex(prevIndex); // 标记用户手动跳到的句子
         audioRef.current.currentTime = prevTime;
+
         if (!isPlaying) {
             audioRef.current.play();
             setIsPlaying(true);
+        }
+
+        if (playMode === 'loop') {
+            message.info(`循环播放句子 ${prevIndex + 1}`);
         }
     };
 
@@ -130,10 +140,17 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({ taskId, onBack }
 
         const nextIndex = Math.min(task.speech_marks.length - 1, currentSentenceIndex + 1);
         const nextTime = task.speech_marks[nextIndex].time / 1000;
+
+        setTargetSentenceIndex(nextIndex); // 标记用户手动跳到的句子
         audioRef.current.currentTime = nextTime;
+
         if (!isPlaying) {
             audioRef.current.play();
             setIsPlaying(true);
+        }
+
+        if (playMode === 'loop') {
+            message.info(`循环播放句子 ${nextIndex + 1}`);
         }
     };
 
@@ -141,7 +158,9 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({ taskId, onBack }
         if (!task?.speech_marks || !audioRef.current || currentSentenceIndex < 0) return;
 
         const currentTime = task.speech_marks[currentSentenceIndex].time / 1000;
+        setTargetSentenceIndex(currentSentenceIndex); // 标记手动回放
         audioRef.current.currentTime = currentTime;
+
         if (!isPlaying) {
             audioRef.current.play();
             setIsPlaying(true);
@@ -164,15 +183,23 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({ taskId, onBack }
         message.info(`播放速度: ${newRate.toFixed(1)}x`);
     };
 
+    const togglePlayMode = () => {
+        const newMode = playMode === 'sequential' ? 'loop' : 'sequential';
+        setPlayMode(newMode);
+        const modeText = newMode === 'sequential' ? '顺序播放' : '单句循环';
+        message.info(`切换到${modeText}模式`);
+    };
+
     // 键盘快捷键
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            // 如果正在输入,不响应快捷键
-            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-                return;
-            }
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
             switch (e.key) {
+                case 'Shift':
+                    e.preventDefault();
+                    togglePlayMode();
+                    break;
                 case 'ArrowLeft':
                     e.preventDefault();
                     playPreviousSentence();
@@ -202,11 +229,32 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({ taskId, onBack }
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isPlaying, currentSentenceIndex, playbackRate, task]);
+    }, [isPlaying, currentSentenceIndex, playbackRate, playMode, task]);
 
+    // 音频时间更新
     const handleTimeUpdate = () => {
-        if (audioRef.current) {
-            setCurrentTime(audioRef.current.currentTime * 1000);
+        if (!audioRef.current) return;
+
+        const newTime = audioRef.current.currentTime * 1000;
+        const oldSentenceIndex = currentSentenceIndex;
+        setCurrentTime(newTime);
+
+        if (playMode === 'loop' && task?.speech_marks && oldSentenceIndex >= 0) {
+            // 如果用户手动跳句，忽略本次循环逻辑
+            if (targetSentenceIndex !== null && targetSentenceIndex !== oldSentenceIndex) {
+                setTargetSentenceIndex(null); // 清空标记
+                return;
+            }
+
+            const currentSentence = task.speech_marks[oldSentenceIndex];
+            const nextSentence = task.speech_marks[oldSentenceIndex + 1];
+
+            if (nextSentence && newTime >= nextSentence.time) {
+                audioRef.current.currentTime = currentSentence.time / 1000;
+            } else if (!nextSentence && audioRef.current.ended) {
+                audioRef.current.currentTime = currentSentence.time / 1000;
+                audioRef.current.play();
+            }
         }
     };
 
@@ -241,7 +289,6 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({ taskId, onBack }
 
             <Title level={2}>任务详情</Title>
 
-            {/* 音频播放控制 */}
             {task.audio_url && (
                 <Card size="small" style={{ marginBottom: '16px' }}>
                     <Space direction="vertical" style={{ width: '100%' }}>
@@ -255,9 +302,12 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({ taskId, onBack }
                             />
                             <Text strong>音频播放</Text>
                             <Tag color="blue">速度: {playbackRate.toFixed(1)}x</Tag>
+                            <Tag color={playMode === 'loop' ? 'orange' : 'green'}>
+                                {playMode === 'loop' ? '🔂 单句循环' : '▶️ 顺序播放'}
+                            </Tag>
                         </Space>
                         <Text type="secondary" style={{ fontSize: '12px' }}>
-                            快捷键: 空格=暂停/播放 | ←=上一句 | →=下一句 | Enter=重播当前句 | ↑=加速 | ↓=减速
+                            快捷键: 空格=暂停/播放 | ←=上一句 | →=下一句 | Enter=重播当前句 | ↑=加速 | ↓=减速 | Shift=切换播放模式
                         </Text>
                         <audio
                             ref={audioRef}
@@ -273,7 +323,6 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({ taskId, onBack }
                 <TranslationOutlined /> 原文与翻译对照
             </Divider>
 
-            {/* 翻译列表 */}
             {task.translations && task.translations.length > 0 ? (
                 <div>
                     {task.translations.map((item, index) => (
