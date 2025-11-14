@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
-import './PracticePage.css';
+import './TranslationPracticePage.css';
 
 const API_BASE_URL = 'http://localhost:8000';
 
-const PracticePage = () => {
+const TranslationPracticePage = () => {
     const navigate = useNavigate();
 
     const [currentQuestion, setCurrentQuestion] = useState(null);
@@ -323,4 +323,4 @@ const PracticePage = () => {
     );
 };
 
-export default PracticePage;
+export default TranslationPracticePage;

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './HistoryPage.css';
+import './TranslationHistoryPage.css';
 
 const API_BASE_URL = 'http://localhost:8000';
 
-const HistoryPage: React.FC = () => {
+const TranslationHistoryPage: React.FC = () => {
     const navigate = useNavigate();
 
     const [records, setRecords] = useState([]);
@@ -282,4 +282,4 @@ const HistoryPage: React.FC = () => {
     );
 };
 
-export default HistoryPage;
+export default TranslationHistoryPage;

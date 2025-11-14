@@ -28,7 +28,7 @@ interface Task {
 
 const API_BASE_URL = 'http://localhost:8000';
 
-export const TaskListPage: React.FC = () => {
+export const ListeningListPage: React.FC = () => {
     const navigate = useNavigate(); // ← 新增
 
     const [inputText, setInputText] = useState('');

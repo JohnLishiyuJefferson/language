@@ -1,8 +1,8 @@
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
-import JapaneseTalk from "./PracticePage";
-import HistoryPage from "./HistoryPage";
-import { TaskListPage } from "./TaskListPage";
-import { TaskDetailPage } from "./TaskDetailPage";
+import TranslationPracticePage from "./TranslationPracticePage.tsx";
+import TranslationHistoryPage from "./TranslationHistoryPage.tsx";
+import { ListeningListPage } from "./ListeningListPage.tsx";
+import { ListeningDetailPage } from "./ListeningDetailPage.tsx";
 
 function App() {
     return (
@@ -17,15 +17,15 @@ function App() {
                 {/* 路由声明 */}
                 <Routes>
                     {/* 造句系统 */}
-                    <Route path="/practice" element={<JapaneseTalk />} />
-                    <Route path="/practice/history" element={<HistoryPage />} />
+                    <Route path="/practice" element={<TranslationPracticePage />} />
+                    <Route path="/practice/history" element={<TranslationHistoryPage />} />
 
                     {/* 听力系统 */}
-                    <Route path="/listening" element={<TaskListPage />} />
-                    <Route path="/listening/:taskId" element={<TaskDetailPage />} />
+                    <Route path="/listening" element={<ListeningListPage />} />
+                    <Route path="/listening/:taskId" element={<ListeningDetailPage />} />
 
                     {/* 默认跳到 /practice */}
-                    <Route path="*" element={<JapaneseTalk />} />
+                    <Route path="*" element={<TranslationPracticePage />} />
                 </Routes>
             </div>
         </BrowserRouter>

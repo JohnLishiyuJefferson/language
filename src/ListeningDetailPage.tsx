@@ -50,7 +50,7 @@ interface Task {
 const API_BASE_URL = 'http://localhost:8000';
 
 
-export const TaskDetailPage: React.FC = () => {
+export const ListeningDetailPage: React.FC = () => {
     const navigate = useNavigate();                        // ⭐ 新增：路由跳转
     const { taskId } = useParams<{ taskId: string }>();     // ⭐ 新增：从 URL 读取 taskId
 
@@ -335,7 +335,7 @@ export const TaskDetailPage: React.FC = () => {
                     {task.translations.map((item, index) => (
                         <Card
                             key={item.index}
-                            ref={(el) => (sentenceRefs.current[index] = el)}
+                            ref={(el) => {sentenceRefs.current[index] = el}}
                             size="small"
                             style={{
                                 marginBottom: '12px',
