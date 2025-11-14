@@ -1,39 +1,34 @@
-import JapaneseTalk from "./PracticePage.tsx";
-import HistoryPage from "./HistoryPage.tsx";
-import {useState} from "react";
-import {TaskListPage} from "./TaskListPage.tsx";
-import {TaskDetailPage} from "./TaskDetailPage.tsx";
-
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import JapaneseTalk from "./PracticePage";
+import HistoryPage from "./HistoryPage";
+import { TaskListPage } from "./TaskListPage";
+import { TaskDetailPage } from "./TaskDetailPage";
 
 function App() {
-    const [currentPage, setCurrentPage] = useState('practice');
-    const [currentView, setCurrentView] = useState<'list' | 'detail'>('list');
-    const [selectedTaskId, setSelectedTaskId] = useState<string>('');
-
-    const handleViewTask = (taskId: string) => {
-        setSelectedTaskId(taskId);
-        setCurrentView('detail');
-    };
-
-    const handleBackToList = () => {
-        setCurrentView('list');
-        setSelectedTaskId('');
-    };
-
-
     return (
-        <div>
-            {currentView === 'list' ? (
-                <TaskListPage onViewTask={handleViewTask} />
-            ) : (
-                <TaskDetailPage taskId={selectedTaskId} onBack={handleBackToList} />
-            )}
-            {/*{currentPage === 'practice' ? (*/}
-            {/*    <JapaneseTalk onNavigateToHistory={() => setCurrentPage('history')} />*/}
-            {/*) : (*/}
-            {/*    <HistoryPage onNavigateToPractice={() => setCurrentPage('practice')} />*/}
-            {/*)}*/}
-        </div>
+        <BrowserRouter>
+            <div>
+                {/* 顶部导航 */}
+                <nav style={{ padding: "10px", borderBottom: "1px solid #ccc" }}>
+                    <Link to="/practice" style={{ marginRight: 20 }}>造句练习</Link>
+                    <Link to="/listening">听力练习</Link>
+                </nav>
+
+                {/* 路由声明 */}
+                <Routes>
+                    {/* 造句系统 */}
+                    <Route path="/practice" element={<JapaneseTalk />} />
+                    <Route path="/practice/history" element={<HistoryPage />} />
+
+                    {/* 听力系统 */}
+                    <Route path="/listening" element={<TaskListPage />} />
+                    <Route path="/listening/:taskId" element={<TaskDetailPage />} />
+
+                    {/* 默认跳到 /practice */}
+                    <Route path="*" element={<JapaneseTalk />} />
+                </Routes>
+            </div>
+        </BrowserRouter>
     );
 }
 

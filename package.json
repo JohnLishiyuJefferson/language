@@ -19,7 +19,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-redux": "^9.2.0",
-    "react-router-dom": "6.x",
+    "react-router-dom": "^7.9.6",
     "serve": "^14.2.4"
   },
   "devDependencies": {

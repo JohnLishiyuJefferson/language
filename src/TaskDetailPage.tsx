@@ -10,6 +10,7 @@ import {
     Row,
     Col,
     Spin,
+    BackTop,
 } from 'antd';
 import {
     ArrowLeftOutlined,
@@ -18,6 +19,7 @@ import {
     TranslationOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
+import { useNavigate, useParams } from "react-router-dom";  // ⭐ 新增：引入 react-router
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -47,12 +49,11 @@ interface Task {
 
 const API_BASE_URL = 'http://localhost:8000';
 
-interface TaskDetailPageProps {
-    taskId: string;
-    onBack: () => void;
-}
 
-export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({ taskId, onBack }) => {
+export const TaskDetailPage: React.FC = () => {
+    const navigate = useNavigate();                        // ⭐ 新增：路由跳转
+    const { taskId } = useParams<{ taskId: string }>();     // ⭐ 新增：从 URL 读取 taskId
+
     const [task, setTask] = useState<Task | null>(null);
     const [loading, setLoading] = useState(true);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -65,7 +66,9 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({ taskId, onBack }
     const sentenceRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
 
     useEffect(() => {
-        loadTaskDetail();
+        if (taskId) {
+            loadTaskDetail();
+        }
     }, [taskId]);
 
     const loadTaskDetail = async () => {
@@ -269,7 +272,7 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({ taskId, onBack }
     if (!task) {
         return (
             <div style={{ padding: '24px' }}>
-                <Button icon={<ArrowLeftOutlined />} onClick={onBack}>
+                <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/tts/tasks")}>
                     返回列表
                 </Button>
                 <div style={{ marginTop: '24px', textAlign: 'center' }}>
@@ -282,7 +285,10 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({ taskId, onBack }
     return (
         <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
             <Space style={{ marginBottom: '24px' }}>
-                <Button icon={<ArrowLeftOutlined />} onClick={onBack}>
+                <Button
+                    icon={<ArrowLeftOutlined />}
+                    onClick={() => navigate("/tts/tasks")}   // ⭐ 使用路由返回
+                >
                     返回列表
                 </Button>
             </Space>
@@ -307,7 +313,8 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({ taskId, onBack }
                             </Tag>
                         </Space>
                         <Text type="secondary" style={{ fontSize: '12px' }}>
-                            快捷键: 空格=暂停/播放 | ←=上一句 | →=下一句 | Enter=重播当前句 | ↑=加速 | ↓=减速 | Shift=切换播放模式
+                            快捷键: 空格=暂停/播放 | ←=上一句 | →=下一句 | Enter=重播当前句 |
+                            ↑=加速 | ↓=减速 | Shift=切换播放模式
                         </Text>
                         <audio
                             ref={audioRef}
@@ -364,6 +371,8 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({ taskId, onBack }
             ) : (
                 <Text type="secondary">暂无翻译数据</Text>
             )}
+
+            <BackTop />
         </div>
     );
 };

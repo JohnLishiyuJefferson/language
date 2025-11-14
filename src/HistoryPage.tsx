@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './HistoryPage.css';
 
 const API_BASE_URL = 'http://localhost:8000';
 
-const HistoryPage = ({ onNavigateToPractice }) => {
+const HistoryPage: React.FC = () => {
+    const navigate = useNavigate();
+
     const [records, setRecords] = useState([]);
-    const [stats, setStats] = useState(null);
+    const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [page, setPage] = useState(0);
     const [total, setTotal] = useState(0);
-    const [expandedId, setExpandedId] = useState(null);
+    const [expandedId, setExpandedId] = useState<string | null>(null);
+
     const limit = 10;
 
     // 获取统计信息
@@ -30,7 +34,9 @@ const HistoryPage = ({ onNavigateToPractice }) => {
         try {
             setLoading(true);
             setError('');
-            const response = await fetch(`${API_BASE_URL}/api/records?limit=${limit}&skip=${page * limit}`);
+            const response = await fetch(
+                `${API_BASE_URL}/api/records?limit=${limit}&skip=${page * limit}`
+            );
 
             if (!response.ok) throw new Error('获取记录失败');
 
@@ -50,14 +56,14 @@ const HistoryPage = ({ onNavigateToPractice }) => {
     }, [page]);
 
     // 获取分数颜色
-    const getScoreColor = (score) => {
+    const getScoreColor = (score: number) => {
         if (score >= 8) return '#28a745';
         if (score >= 6) return '#ffc107';
         return '#dc3545';
     };
 
     // 格式化时间
-    const formatTime = (timestamp) => {
+    const formatTime = (timestamp: string) => {
         const date = new Date(timestamp);
         return date.toLocaleString('zh-CN', {
             year: 'numeric',
@@ -69,7 +75,7 @@ const HistoryPage = ({ onNavigateToPractice }) => {
     };
 
     // 切换展开/折叠
-    const toggleExpand = (id) => {
+    const toggleExpand = (id: string) => {
         setExpandedId(expandedId === id ? null : id);
     };
 
@@ -82,14 +88,14 @@ const HistoryPage = ({ onNavigateToPractice }) => {
                 <div className="history-card">
                     <div className="history-header">
                         <h1 className="history-title">📊 学习记录</h1>
-                        {onNavigateToPractice && (
-                            <button
-                                className="btn btn-primary"
-                                onClick={onNavigateToPractice}
-                            >
-                                返回练习
-                            </button>
-                        )}
+
+                        {/* ← 使用 React Router 导航 */}
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => navigate('/practice')}
+                        >
+                            返回练习
+                        </button>
                     </div>
 
                     {/* 统计信息 */}
@@ -134,7 +140,7 @@ const HistoryPage = ({ onNavigateToPractice }) => {
                     ) : (
                         <>
                             <div className="records-list">
-                                {records.map((record) => {
+                                {records.map((record: any) => {
                                     const isExpanded = expandedId === record._id;
                                     return (
                                         <div
@@ -209,7 +215,7 @@ const HistoryPage = ({ onNavigateToPractice }) => {
                                                             record.evaluation.standard_answers.length > 0 && (
                                                                 <div>
                                                                     <div className="detail-title">✅ 标准答案</div>
-                                                                    {record.evaluation.standard_answers.map((answer, idx) => (
+                                                                    {record.evaluation.standard_answers.map((answer: string, idx: number) => (
                                                                         <div key={idx} className="standard-answer">
                                                                             {answer}
                                                                         </div>
@@ -223,7 +229,7 @@ const HistoryPage = ({ onNavigateToPractice }) => {
                                                                 <div>
                                                                     <div className="detail-title">💡 改进建议</div>
                                                                     <ul className="suggestion-list">
-                                                                        {record.evaluation.suggestions.map((suggestion, idx) => (
+                                                                        {record.evaluation.suggestions.map((suggestion: string, idx: number) => (
                                                                             <li key={idx} className="suggestion-item">
                                                                                 • {suggestion}
                                                                             </li>

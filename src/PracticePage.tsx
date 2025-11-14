@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from "react-router-dom";
 import './PracticePage.css';
 
 const API_BASE_URL = 'http://localhost:8000';
 
-const PracticePage = ({ onNavigateToHistory }) => {
+const PracticePage = () => {
+    const navigate = useNavigate();
+
     const [currentQuestion, setCurrentQuestion] = useState(null);
     const [userAnswer, setUserAnswer] = useState('');
     const [evaluation, setEvaluation] = useState(null);
@@ -150,14 +153,12 @@ const PracticePage = ({ onNavigateToHistory }) => {
                     <div className="practice-header">
                         <h1 className="practice-title">🎯 日语练习</h1>
                         <div className="header-actions">
-                            {onNavigateToHistory && (
-                                <button
-                                    className="btn btn-secondary"
-                                    onClick={onNavigateToHistory}
-                                >
-                                    📊 查看记录
-                                </button>
-                            )}
+                            <button
+                                className="btn btn-secondary"
+                                onClick={() => navigate("/practice/history")}
+                            >
+                                📊 查看记录
+                            </button>
                         </div>
                     </div>
 
@@ -265,7 +266,7 @@ const PracticePage = ({ onNavigateToHistory }) => {
                                 </div>
 
                                 {/* 标准答案 */}
-                                {evaluation.standard_answers && evaluation.standard_answers.length > 0 && (
+                                {evaluation.standard_answers?.length > 0 && (
                                     <div className="standard-answers">
                                         <div className="section-title">✅ 标准答案</div>
                                         {evaluation.standard_answers.map((answer, idx) => (
@@ -277,7 +278,7 @@ const PracticePage = ({ onNavigateToHistory }) => {
                                 )}
 
                                 {/* 改进建议 */}
-                                {evaluation.suggestions && evaluation.suggestions.length > 0 && (
+                                {evaluation.suggestions?.length > 0 && (
                                     <div className="suggestions">
                                         <div className="section-title">💡 改进建议</div>
                                         <ul className="suggestion-list">

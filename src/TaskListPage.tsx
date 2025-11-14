@@ -14,6 +14,7 @@ import {
     ReloadOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom'; // ← 新增
 
 const { TextArea } = Input;
 const { Title, Text } = Typography;
@@ -27,14 +28,14 @@ interface Task {
 
 const API_BASE_URL = 'http://localhost:8000';
 
-interface TaskListPageProps {
-    onViewTask: (taskId: string) => void;
-}
+export const TaskListPage: React.FC = () => {
+    const navigate = useNavigate(); // ← 新增
 
-export const TaskListPage: React.FC<TaskListPageProps> = ({ onViewTask }) => {
     const [inputText, setInputText] = useState('');
     const [loading, setLoading] = useState(false);
     const [tasks, setTasks] = useState<Task[]>([]);
+
+    const MAX_CHAR_COUNT = 3000;
 
     const loadTasks = async () => {
         try {
@@ -51,18 +52,24 @@ export const TaskListPage: React.FC<TaskListPageProps> = ({ onViewTask }) => {
     }, []);
 
     const handleSubmit = async () => {
-        if (!inputText.trim()) {
+        const trimmedText = inputText.trim();
+        if (!trimmedText) {
             message.warning('请输入日语文本');
+            return;
+        }
+
+        if (trimmedText.length > MAX_CHAR_COUNT) {
+            message.warning(`文本长度不能超过 ${MAX_CHAR_COUNT} 个字符`);
             return;
         }
 
         setLoading(true);
         try {
             const response = await axios.post(`${API_BASE_URL}/api/tts/create-task`, {
-                text: inputText,
+                text: trimmedText,
             });
 
-            message.success('任务创建成功!正在处理中...');
+            message.success('任务创建成功! 正在处理中...');
             setInputText('');
             pollTaskStatus(response.data.task_id);
         } catch (error) {
@@ -110,20 +117,34 @@ export const TaskListPage: React.FC<TaskListPageProps> = ({ onViewTask }) => {
         poll();
     };
 
+    // -----------------------------------
+    // 跳转到详情页（代替 onViewTask）
+    // -----------------------------------
+    const goToDetail = (taskId: string) => {
+        navigate(`/tasks/${taskId}`); // ← 直接跳路由
+    };
+
     return (
         <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
             <Title level={2}>
-                <SoundOutlined /> 日语文本转语音学习工具
+                <SoundOutlined /> 日语听力
             </Title>
 
-            <Card title="输入日语文本" style={{ marginBottom: '24px' }}>
+            <Card style={{ marginBottom: '24px' }}>
                 <TextArea
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     placeholder="请输入日语文本..."
                     rows={6}
                     disabled={loading}
+                    maxLength={MAX_CHAR_COUNT} // 限制输入框最大长度
                 />
+                {/* 显示字符数 */}
+                <div style={{ marginTop: '8px', textAlign: 'right' }}>
+                    <Text type="secondary">
+                        {inputText.length} / {MAX_CHAR_COUNT} 字
+                    </Text>
+                </div>
                 <div style={{ marginTop: '16px', textAlign: 'right' }}>
                     <Button
                         type="primary"
@@ -133,7 +154,7 @@ export const TaskListPage: React.FC<TaskListPageProps> = ({ onViewTask }) => {
                         loading={loading}
                         disabled={loading}
                     >
-                        {loading ? '处理中...' : '生成音频和翻译'}
+                        {loading ? '处理中...' : '生成'}
                     </Button>
                 </div>
             </Card>
@@ -153,7 +174,7 @@ export const TaskListPage: React.FC<TaskListPageProps> = ({ onViewTask }) => {
                             actions={[
                                 <Button
                                     type="link"
-                                    onClick={() => onViewTask(task.task_id)}
+                                    onClick={() => task.status === 'completed' && goToDetail(task.task_id)}
                                     disabled={task.status !== 'completed'}
                                 >
                                     查看详情
@@ -172,7 +193,9 @@ export const TaskListPage: React.FC<TaskListPageProps> = ({ onViewTask }) => {
                                                     ? 'success'
                                                     : task.status === 'failed'
                                                         ? 'error'
-                                                        : 'processing'
+                                                        : task.status === 'processing'
+                                                            ? 'processing'
+                                                            : 'default'
                                             }
                                         >
                                             {task.status === 'completed'
