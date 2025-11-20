@@ -19,7 +19,7 @@ import {
     TranslationOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
-import { useNavigate, useParams } from "react-router-dom";  // ⭐ 新增：引入 react-router
+import { useNavigate, useParams } from "react-router-dom";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -49,10 +49,9 @@ interface Task {
 
 const API_BASE_URL = 'http://localhost:8000';
 
-
 export const ListeningDetailPage: React.FC = () => {
-    const navigate = useNavigate();                        // ⭐ 新增：路由跳转
-    const { taskId } = useParams<{ taskId: string }>();     // ⭐ 新增：从 URL 读取 taskId
+    const navigate = useNavigate();
+    const { taskId } = useParams<{ taskId: string }>();
 
     const [task, setTask] = useState<Task | null>(null);
     const [loading, setLoading] = useState(true);
@@ -60,7 +59,11 @@ export const ListeningDetailPage: React.FC = () => {
     const [currentTime, setCurrentTime] = useState(0);
     const [playbackRate, setPlaybackRate] = useState(1.0);
     const [playMode, setPlayMode] = useState<'sequential' | 'loop'>('sequential');
-    const [targetSentenceIndex, setTargetSentenceIndex] = useState<number | null>(null); // 手动跳句标记
+    const [targetSentenceIndex, setTargetSentenceIndex] = useState<number | null>(null);
+
+    // ⭐ 新增：显示模式相关状态
+    const [displayMode, setDisplayMode] = useState<'progressive' | 'all'>('progressive');
+    const [maxVisibleIndex, setMaxVisibleIndex] = useState<number>(0);
 
     const audioRef = useRef<HTMLAudioElement>(null);
     const sentenceRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
@@ -96,6 +99,13 @@ export const ListeningDetailPage: React.FC = () => {
     };
 
     const currentSentenceIndex = getCurrentSentenceIndex();
+
+    // ⭐ 新增：更新已显示的最大句子索引
+    useEffect(() => {
+        if (displayMode === 'progressive' && currentSentenceIndex >= 0) {
+            setMaxVisibleIndex(prev => Math.max(prev, currentSentenceIndex));
+        }
+    }, [currentSentenceIndex, displayMode]);
 
     // 滚动到当前句子
     useEffect(() => {
@@ -193,7 +203,20 @@ export const ListeningDetailPage: React.FC = () => {
         message.info(`切换到${modeText}模式`);
     };
 
-    // 键盘快捷键
+    // ⭐ 新增：切换显示模式
+    const toggleDisplayMode = () => {
+        const newMode = displayMode === 'progressive' ? 'all' : 'progressive';
+        setDisplayMode(newMode);
+        const modeText = newMode === 'progressive' ? '逐句显示' : '显示全部';
+        message.info(`切换到${modeText}模式`);
+    };
+
+    // ⭐ 新增：判断句子是否应该显示
+    const shouldShowSentence = (index: number) => {
+        if (displayMode === 'all') return true;
+        return index <= maxVisibleIndex;
+    };
+
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -284,13 +307,25 @@ export const ListeningDetailPage: React.FC = () => {
 
     return (
         <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+            {/* ⭐ 修改：添加显示模式切换按钮 */}
             <Space style={{ marginBottom: '24px' }}>
                 <Button
                     icon={<ArrowLeftOutlined />}
-                    onClick={() => navigate("/listening")}   // ⭐ 使用路由返回
+                    onClick={() => navigate("/listening")}
                 >
                     返回列表
                 </Button>
+                <Button
+                    type={displayMode === 'all' ? 'primary' : 'default'}
+                    onClick={toggleDisplayMode}
+                >
+                    {displayMode === 'progressive' ? '📖 显示全部句子' : '📝 逐句显示'}
+                </Button>
+                <Text type="secondary" style={{ fontSize: '12px' }}>
+                    {displayMode === 'progressive'
+                        ? `当前显示: 1-${maxVisibleIndex + 1} 句`
+                        : '显示全部句子'}
+                </Text>
             </Space>
 
             <Title level={2}>任务详情</Title>
@@ -330,43 +365,51 @@ export const ListeningDetailPage: React.FC = () => {
                 <TranslationOutlined /> 原文与翻译对照
             </Divider>
 
+            {/* ⭐ 修改：根据显示模式控制句子显示 */}
             {task.translations && task.translations.length > 0 ? (
                 <div>
-                    {task.translations.map((item, index) => (
-                        <Card
-                            key={item.index}
-                            ref={(el) => {sentenceRefs.current[index] = el}}
-                            size="small"
-                            style={{
-                                marginBottom: '12px',
-                                backgroundColor:
-                                    currentSentenceIndex === index ? '#e6f7ff' : 'white',
-                                border:
-                                    currentSentenceIndex === index
+                    {task.translations.map((item, index) => {
+                        const isVisible = shouldShowSentence(index);
+                        const isCurrent = currentSentenceIndex === index;
+
+                        return (
+                            <Card
+                                key={item.index}
+                                ref={(el) => {sentenceRefs.current[index] = el}}
+                                size="small"
+                                style={{
+                                    marginBottom: '12px',
+                                    backgroundColor: isCurrent ? '#e6f7ff' : 'white',
+                                    border: isCurrent
                                         ? '2px solid #1890ff'
                                         : '1px solid #d9d9d9',
-                                transition: 'all 0.3s',
-                            }}
-                        >
-                            <Row gutter={[16, 8]}>
-                                <Col span={24}>
-                                    <Tag color="blue">句子 {item.index}</Tag>
-                                </Col>
-                                <Col span={24}>
-                                    <Text strong>原文: </Text>
-                                    <Paragraph style={{ marginBottom: 0, fontSize: '16px' }}>
-                                        {item.original}
-                                    </Paragraph>
-                                </Col>
-                                <Col span={24}>
-                                    <Text strong>翻译: </Text>
-                                    <Paragraph style={{ marginBottom: 0, fontSize: '16px' }}>
-                                        {item.translation}
-                                    </Paragraph>
-                                </Col>
-                            </Row>
-                        </Card>
-                    ))}
+                                    transition: 'all 0.3s',
+                                    opacity: isVisible ? 1 : 0.3,
+                                }}
+                            >
+                                <Row gutter={[16, 8]}>
+                                    <Col span={24}>
+                                        <Tag color="blue">句子 {item.index}</Tag>
+                                        {!isVisible && (
+                                            <Tag color="default">未播放</Tag>
+                                        )}
+                                    </Col>
+                                    <Col span={24}>
+                                        <Text strong>原文: </Text>
+                                        <Paragraph style={{ marginBottom: 0, fontSize: '16px' }}>
+                                            {isVisible ? item.original : '●●●●●●●●'}
+                                        </Paragraph>
+                                    </Col>
+                                    <Col span={24}>
+                                        <Text strong>翻译: </Text>
+                                        <Paragraph style={{ marginBottom: 0, fontSize: '16px' }}>
+                                            {isVisible ? item.translation : '●●●●●●●●'}
+                                        </Paragraph>
+                                    </Col>
+                                </Row>
+                            </Card>
+                        );
+                    })}
                 </div>
             ) : (
                 <Text type="secondary">暂无翻译数据</Text>
