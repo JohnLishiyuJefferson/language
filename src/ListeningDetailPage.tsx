@@ -272,7 +272,7 @@ export const ListeningDetailPage: React.FC = () => {
     if (!task) {
         return (
             <div style={{ padding: '24px' }}>
-                <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/tts/tasks")}>
+                <Button icon={<ArrowLeftOutlined />} onClick={() => navigate("/listening")}>
                     返回列表
                 </Button>
                 <div style={{ marginTop: '24px', textAlign: 'center' }}>
@@ -287,7 +287,7 @@ export const ListeningDetailPage: React.FC = () => {
             <Space style={{ marginBottom: '24px' }}>
                 <Button
                     icon={<ArrowLeftOutlined />}
-                    onClick={() => navigate("/tts/tasks")}   // ⭐ 使用路由返回
+                    onClick={() => navigate("/listening")}   // ⭐ 使用路由返回
                 >
                     返回列表
                 </Button>

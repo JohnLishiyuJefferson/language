@@ -29,7 +29,7 @@ interface Task {
 const API_BASE_URL = 'http://localhost:8000';
 
 export const ListeningListPage: React.FC = () => {
-    const navigate = useNavigate(); // ← 新增
+    const navigate = useNavigate();
 
     const [inputText, setInputText] = useState('');
     const [loading, setLoading] = useState(false);
@@ -117,11 +117,8 @@ export const ListeningListPage: React.FC = () => {
         poll();
     };
 
-    // -----------------------------------
-    // 跳转到详情页（代替 onViewTask）
-    // -----------------------------------
     const goToDetail = (taskId: string) => {
-        navigate(`/tasks/${taskId}`); // ← 直接跳路由
+        navigate(`/listening/${taskId}`);
     };
 
     return (
