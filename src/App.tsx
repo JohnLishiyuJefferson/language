@@ -3,6 +3,7 @@ import TranslationPracticePage from "./TranslationPracticePage.tsx";
 import TranslationHistoryPage from "./TranslationHistoryPage.tsx";
 import { ListeningListPage } from "./ListeningListPage.tsx";
 import { ListeningDetailPage } from "./ListeningDetailPage.tsx";
+import RagSearchPage from "./RagSearchPage.tsx";
 
 function App() {
     return (
@@ -11,7 +12,8 @@ function App() {
                 {/* 顶部导航 */}
                 <nav style={{ padding: "10px", borderBottom: "1px solid #ccc" }}>
                     <Link to="/practice" style={{ marginRight: 20 }}>造句练习</Link>
-                    <Link to="/listening">听力练习</Link>
+                    <Link to="/listening" style={{ marginRight: 20 }}>听力练习</Link>
+                    <Link to="/rag">智能问答</Link>
                 </nav>
 
                 {/* 路由声明 */}
@@ -23,6 +25,9 @@ function App() {
                     {/* 听力系统 */}
                     <Route path="/listening" element={<ListeningListPage />} />
                     <Route path="/listening/:taskId" element={<ListeningDetailPage />} />
+
+                    {/* RAG 搜索 */}
+                    <Route path="/rag" element={<RagSearchPage />} />
 
                     {/* 默认跳到 /practice */}
                     <Route path="*" element={<TranslationPracticePage />} />
