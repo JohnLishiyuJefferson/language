@@ -10,13 +10,25 @@ import {
     Row,
     Col,
     Spin,
-    BackTop,
+    Slider,
+    Tooltip,
 } from 'antd';
 import {
     ArrowLeftOutlined,
     PlayCircleOutlined,
     PauseCircleOutlined,
     TranslationOutlined,
+    StepBackwardOutlined,
+    StepForwardOutlined,
+    ReloadOutlined,
+    RetweetOutlined,
+    OrderedListOutlined,
+    EyeOutlined,
+    EyeInvisibleOutlined,
+    SoundOutlined,
+    VerticalAlignTopOutlined,
+    MinusCircleOutlined,
+    PlusCircleOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
 import { useNavigate, useParams } from "react-router-dom";
@@ -65,6 +77,7 @@ export const ListeningDetailPage: React.FC = () => {
     const [playbackRate, setPlaybackRate] = useState(1.0);
     const [playMode, setPlayMode] = useState<'sequential' | 'loop'>('sequential');
     const [targetSentenceIndex, setTargetSentenceIndex] = useState<number | null>(null);
+    const [volume, setVolume] = useState(100);
 
     // ⭐ 新增：显示模式相关状态
     const [displayMode, setDisplayMode] = useState<'progressive' | 'all'>('progressive');
@@ -201,7 +214,7 @@ export const ListeningDetailPage: React.FC = () => {
 
     const increasePlaybackRate = () => {
         if (!audioRef.current) return;
-        const newRate = Math.min(1.5, playbackRate + 0.1);
+        const newRate = Math.min(2.0, playbackRate + 0.1);
         setPlaybackRate(Number(newRate.toFixed(1)));
         audioRef.current.playbackRate = Number(newRate.toFixed(1));
         message.info(`播放速度: ${newRate.toFixed(1)}x`);
@@ -234,6 +247,17 @@ export const ListeningDetailPage: React.FC = () => {
     const shouldShowSentence = (index: number) => {
         if (displayMode === 'all') return true;
         return index <= maxVisibleIndex;
+    };
+
+    const handleVolumeChange = (value: number) => {
+        setVolume(value);
+        if (audioRef.current) {
+            audioRef.current.volume = value / 100;
+        }
+    };
+
+    const scrollToTop = () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     useEffect(() => {
@@ -330,8 +354,7 @@ export const ListeningDetailPage: React.FC = () => {
     }
 
     return (
-        <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
-            {/* ⭐ 修改：添加显示模式切换按钮 */}
+        <div style={{ padding: '24px', paddingBottom: '100px', maxWidth: '1200px', margin: '0 auto' }}>
             <Space style={{ marginBottom: '24px' }}>
                 <Button
                     icon={<ArrowLeftOutlined />}
@@ -339,17 +362,6 @@ export const ListeningDetailPage: React.FC = () => {
                 >
                     返回列表
                 </Button>
-                <Button
-                    type={displayMode === 'all' ? 'primary' : 'default'}
-                    onClick={toggleDisplayMode}
-                >
-                    {displayMode === 'progressive' ? '📖 显示全部句子' : '📝 逐句显示'}
-                </Button>
-                <Text type="secondary" style={{ fontSize: '12px' }}>
-                    {displayMode === 'progressive'
-                        ? `当前显示: 1-${maxVisibleIndex + 1} 句`
-                        : '显示全部句子'}
-                </Text>
             </Space>
 
             <Title level={2}>任务详情</Title>
@@ -357,20 +369,6 @@ export const ListeningDetailPage: React.FC = () => {
             {task.audio_url && (
                 <Card size="small" style={{ marginBottom: '16px' }}>
                     <Space direction="vertical" style={{ width: '100%' }}>
-                        <Space>
-                            <Button
-                                type="primary"
-                                shape="circle"
-                                icon={isPlaying ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
-                                onClick={togglePlay}
-                                size="large"
-                            />
-                            <Text strong>音频播放</Text>
-                            <Tag color="blue">速度: {playbackRate.toFixed(1)}x</Tag>
-                            <Tag color={playMode === 'loop' ? 'orange' : 'green'}>
-                                {playMode === 'loop' ? '🔂 单句循环' : '▶️ 顺序播放'}
-                            </Tag>
-                        </Space>
                         <Text type="secondary" style={{ fontSize: '12px' }}>
                             快捷键: 空格=暂停/播放 | ←=上一句 | →=下一句 | Enter=重播当前句 |
                             ↑=加速 | ↓=减速 | Shift=切换播放模式
@@ -439,7 +437,115 @@ export const ListeningDetailPage: React.FC = () => {
                 <Text type="secondary">暂无翻译数据</Text>
             )}
 
-            <BackTop />
+            {/* 底部悬浮操作栏 */}
+            <div style={{
+                position: 'fixed',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                backdropFilter: 'blur(10px)',
+                borderTop: '1px solid #e8e8e8',
+                boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.05)',
+                padding: '12px 24px',
+                zIndex: 1000,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+            }}>
+                <Space
+                    size="small"
+                    wrap={false}
+                    style={{
+                        transform: "scale(0.95)",
+                        transformOrigin: "center",
+                        transition: "transform .2s",
+                        whiteSpace: "nowrap",
+                    }}
+                >
+                    {/* 播放控制组 */}
+                    <Space>
+                        <Tooltip title="上一句 (←)">
+                            <Button icon={<StepBackwardOutlined />} onClick={playPreviousSentence} />
+                        </Tooltip>
+                        <Tooltip title={isPlaying ? "暂停 (Space)" : "播放 (Space)"}>
+                            <Button
+                                type="primary"
+                                shape="circle"
+                                size="large"
+                                icon={isPlaying ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
+                                onClick={togglePlay}
+                            />
+                        </Tooltip>
+                        <Tooltip title="下一句 (→)">
+                            <Button icon={<StepForwardOutlined />} onClick={playNextSentence} />
+                        </Tooltip>
+                        <Tooltip title="重播当前句 (Enter)">
+                            <Button icon={<ReloadOutlined />} onClick={replayCurrentSentence} />
+                        </Tooltip>
+                    </Space>
+
+                    <Divider type="vertical" style={{ height: '24px' }} />
+
+                    {/* 速度控制组 */}
+                    <Space>
+                        <Tooltip title="减速 (↓)">
+                            <Button icon={<MinusCircleOutlined />} onClick={decreasePlaybackRate} size="small" />
+                        </Tooltip>
+                        <div style={{ width: '60px', textAlign: 'center', fontWeight: 'bold' }}>
+                            {playbackRate.toFixed(1)}x
+                        </div>
+                        <Tooltip title="加速 (↑)">
+                            <Button icon={<PlusCircleOutlined />} onClick={increasePlaybackRate} size="small" />
+                        </Tooltip>
+                    </Space>
+
+                    <Divider type="vertical" style={{ height: '24px' }} />
+
+                    {/* 模式控制组 */}
+                    <Space>
+                        <Tooltip title={playMode === 'sequential' ? "切换到单句循环 (Shift)" : "切换到顺序播放 (Shift)"}>
+                            <Button
+                                icon={playMode === 'sequential' ? <OrderedListOutlined /> : <RetweetOutlined />}
+                                onClick={togglePlayMode}
+                                type={playMode === 'loop' ? 'primary' : 'default'}
+                                ghost={playMode === 'loop'}
+                            >
+                                {playMode === 'sequential' ? '顺序播放' : '单句循环'}
+                            </Button>
+                        </Tooltip>
+                        <Tooltip title={displayMode === 'progressive' ? "显示全部" : "逐句显示"}>
+                            <Button
+                                icon={displayMode === 'progressive' ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                                onClick={toggleDisplayMode}
+                            >
+                                {displayMode === 'progressive' ? '逐句显示' : '显示全部'}
+                            </Button>
+                        </Tooltip>
+                    </Space>
+
+                    <Divider type="vertical" style={{ height: '24px' }} />
+
+                    {/* 音量控制组 */}
+                    <Space style={{ width: '150px' }}>
+                        <SoundOutlined />
+                        <Slider
+                            min={0}
+                            max={100}
+                            value={volume}
+                            onChange={handleVolumeChange}
+                            style={{ width: '100px' }}
+                        />
+                    </Space>
+
+                    <Divider type="vertical" style={{ height: '24px' }} />
+
+                    {/* 辅助功能 */}
+                    <Tooltip title="回到顶部">
+                        <Button icon={<VerticalAlignTopOutlined />} onClick={scrollToTop} />
+                    </Tooltip>
+                </Space>
+            </div>
         </div>
     );
 };
