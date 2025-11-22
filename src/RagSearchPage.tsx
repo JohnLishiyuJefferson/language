@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input, List, Card, Button, Typography, Space, message } from 'antd';
 import axios from 'axios';
 import { SearchOutlined, EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from './store';
+import { setSearchState } from './store/slices/ragSlice';
 
 const { Search } = Input;
 const { Title, Text } = Typography;
@@ -15,15 +18,21 @@ interface SearchResult {
 const API_BASE_URL = 'http://localhost:8000';
 
 const RagSearchPage: React.FC = () => {
+    const dispatch = useDispatch();
+    const { query: savedQuery, results: savedResults } = useSelector((state: RootState) => state.rag);
+
     const [loading, setLoading] = useState(false);
-    const [results, setResults] = useState<SearchResult[]>([]);
+    const [searchInput, setSearchInput] = useState(savedQuery);
     const [visibleAnswers, setVisibleAnswers] = useState<Set<number>>(new Set());
+
+    useEffect(() => {
+        setSearchInput(savedQuery);
+    }, [savedQuery]);
 
     const onSearch = async (value: string) => {
         if (!value.trim()) return;
 
         setLoading(true);
-        setResults([]);
         setVisibleAnswers(new Set());
 
         try {
@@ -31,8 +40,12 @@ const RagSearchPage: React.FC = () => {
                 query: value,
                 k: 5
             });
-            setResults(response.data.results);
-            if (response.data.results.length === 0) {
+            const results = response.data.results;
+
+            // Save to Redux
+            dispatch(setSearchState({ query: value, results }));
+
+            if (results.length === 0) {
                 message.info('未找到相关内容');
             }
         } catch (error) {
@@ -67,11 +80,13 @@ const RagSearchPage: React.FC = () => {
                 onSearch={onSearch}
                 loading={loading}
                 style={{ marginBottom: '30px' }}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
             />
 
             <List
                 grid={{ gutter: 16, column: 1 }}
-                dataSource={results}
+                dataSource={savedResults}
                 renderItem={(item, index) => (
                     <List.Item>
                         <Card

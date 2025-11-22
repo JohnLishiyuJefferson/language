@@ -20,6 +20,9 @@ import {
 } from '@ant-design/icons';
 import axios from 'axios';
 import { useNavigate, useParams } from "react-router-dom";
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from './store';
+import { updateSentenceIndex, clearCurrentTask } from './store/slices/listeningSlice';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -52,6 +55,8 @@ const API_BASE_URL = 'http://localhost:8000';
 export const ListeningDetailPage: React.FC = () => {
     const navigate = useNavigate();
     const { taskId } = useParams<{ taskId: string }>();
+    const dispatch = useDispatch();
+    const savedSentenceIndex = useSelector((state: RootState) => state.listening.currentSentenceIndex);
 
     const [task, setTask] = useState<Task | null>(null);
     const [loading, setLoading] = useState(true);
@@ -79,6 +84,18 @@ export const ListeningDetailPage: React.FC = () => {
             const response = await axios.get(`${API_BASE_URL}/api/tts/task/${taskId}`);
             setTask(response.data);
             setLoading(false);
+
+            // Restore playback position from Redux if available
+            if (savedSentenceIndex > 0 && audioRef.current && response.data.speech_marks) {
+                const savedMark = response.data.speech_marks[savedSentenceIndex];
+                if (savedMark) {
+                    setTimeout(() => {
+                        if (audioRef.current) {
+                            audioRef.current.currentTime = savedMark.time / 1000;
+                        }
+                    }, 500); // Small delay to ensure audio is loaded
+                }
+            }
         } catch (error) {
             console.error('Failed to load task details:', error);
             message.error('加载任务详情失败');
@@ -104,6 +121,8 @@ export const ListeningDetailPage: React.FC = () => {
     useEffect(() => {
         if (displayMode === 'progressive' && currentSentenceIndex >= 0) {
             setMaxVisibleIndex(prev => Math.max(prev, currentSentenceIndex));
+            // Save to Redux
+            dispatch(updateSentenceIndex(currentSentenceIndex));
         }
     }, [currentSentenceIndex, displayMode]);
 
@@ -284,6 +303,11 @@ export const ListeningDetailPage: React.FC = () => {
         }
     };
 
+    const handleBackToList = () => {
+        dispatch(clearCurrentTask()); // Clear saved task
+        navigate("/listening");
+    };
+
     if (loading) {
         return (
             <div style={{ padding: '24px', textAlign: 'center' }}>
@@ -311,7 +335,7 @@ export const ListeningDetailPage: React.FC = () => {
             <Space style={{ marginBottom: '24px' }}>
                 <Button
                     icon={<ArrowLeftOutlined />}
-                    onClick={() => navigate("/listening")}
+                    onClick={handleBackToList}
                 >
                     返回列表
                 </Button>
@@ -375,7 +399,7 @@ export const ListeningDetailPage: React.FC = () => {
                         return (
                             <Card
                                 key={item.index}
-                                ref={(el) => {sentenceRefs.current[index] = el}}
+                                ref={(el) => { sentenceRefs.current[index] = el }}
                                 size="small"
                                 style={{
                                     marginBottom: '12px',

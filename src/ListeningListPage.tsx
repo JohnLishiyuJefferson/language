@@ -14,7 +14,10 @@ import {
     ReloadOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom'; // ← 新增
+import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from './store';
+import { setCurrentTask } from './store/slices/listeningSlice';
 
 const { TextArea } = Input;
 const { Title, Text } = Typography;
@@ -30,6 +33,8 @@ const API_BASE_URL = 'http://localhost:8000';
 
 export const ListeningListPage: React.FC = () => {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
+    const savedTaskId = useSelector((state: RootState) => state.listening.currentTaskId);
 
     const [inputText, setInputText] = useState('');
     const [loading, setLoading] = useState(false);
@@ -49,6 +54,11 @@ export const ListeningListPage: React.FC = () => {
 
     useEffect(() => {
         loadTasks();
+
+        // Auto-navigate to saved task if exists
+        if (savedTaskId) {
+            navigate(`/listening/${savedTaskId}`);
+        }
     }, []);
 
     const handleSubmit = async () => {
@@ -118,6 +128,7 @@ export const ListeningListPage: React.FC = () => {
     };
 
     const goToDetail = (taskId: string) => {
+        dispatch(setCurrentTask(taskId)); // Save to Redux
         navigate(`/listening/${taskId}`);
     };
 

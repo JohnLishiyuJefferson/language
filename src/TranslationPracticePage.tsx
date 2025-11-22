@@ -1,18 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from './store';
+import { setDifficultyLevel } from './store/slices/practiceSlice';
 import './TranslationPracticePage.css';
 
 const API_BASE_URL = 'http://localhost:8000';
 
 const TranslationPracticePage = () => {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
+    const savedLevel = useSelector((state: RootState) => state.practice.difficultyLevel);
 
     const [currentQuestion, setCurrentQuestion] = useState(null);
     const [userAnswer, setUserAnswer] = useState('');
     const [evaluation, setEvaluation] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [selectedLevel, setSelectedLevel] = useState('beginner');
+    const [selectedLevel, setSelectedLevel] = useState(savedLevel);
     const [pendingCount, setPendingCount] = useState(0);
 
     // 初始化：检查题库并生成题目
@@ -132,6 +137,7 @@ const TranslationPracticePage = () => {
     // 切换难度
     const handleLevelChange = async (level) => {
         setSelectedLevel(level);
+        dispatch(setDifficultyLevel(level)); // Save to Redux
         setCurrentQuestion(null);
         setEvaluation(null);
         setUserAnswer('');
