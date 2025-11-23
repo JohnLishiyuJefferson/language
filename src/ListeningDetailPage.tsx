@@ -93,6 +93,9 @@ export const ListeningDetailPage: React.FC = () => {
     const [highlightedWords, setHighlightedWords] = useState<string[]>([]);
     const [sentenceWords, setSentenceWords] = useState<string[]>([]);
 
+    // ⭐ Use useMessage hook for reliable message display
+    const [messageApi, contextHolder] = message.useMessage();
+
     const audioRef = useRef<HTMLAudioElement>(null);
     const sentenceRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
 
@@ -121,7 +124,7 @@ export const ListeningDetailPage: React.FC = () => {
             }
         } catch (error) {
             console.error('Failed to load task details:', error);
-            message.error('加载任务详情失败');
+            messageApi.error('加载任务详情失败');
             setLoading(false);
         }
     };
@@ -186,7 +189,7 @@ export const ListeningDetailPage: React.FC = () => {
         }
 
         if (playMode === 'loop') {
-            message.info(`循环播放句子 ${prevIndex + 1}`);
+            messageApi.info(`循环播放句子 ${prevIndex + 1}`);
         }
     };
 
@@ -205,7 +208,7 @@ export const ListeningDetailPage: React.FC = () => {
         }
 
         if (playMode === 'loop') {
-            message.info(`循环播放句子 ${nextIndex + 1}`);
+            messageApi.info(`循环播放句子 ${nextIndex + 1}`);
         }
     };
 
@@ -227,7 +230,7 @@ export const ListeningDetailPage: React.FC = () => {
         const newRate = Math.min(2.0, playbackRate + 0.1);
         setPlaybackRate(Number(newRate.toFixed(1)));
         audioRef.current.playbackRate = Number(newRate.toFixed(1));
-        message.info(`播放速度: ${newRate.toFixed(1)}x`);
+        messageApi.info(`播放速度: ${newRate.toFixed(1)}x`);
     };
 
     const decreasePlaybackRate = () => {
@@ -235,14 +238,14 @@ export const ListeningDetailPage: React.FC = () => {
         const newRate = Math.max(0.5, playbackRate - 0.1);
         setPlaybackRate(Number(newRate.toFixed(1)));
         audioRef.current.playbackRate = Number(newRate.toFixed(1));
-        message.info(`播放速度: ${newRate.toFixed(1)}x`);
+        messageApi.info(`播放速度: ${newRate.toFixed(1)}x`);
     };
 
     const togglePlayMode = () => {
         const newMode = playMode === 'sequential' ? 'loop' : 'sequential';
         setPlayMode(newMode);
         const modeText = newMode === 'sequential' ? '顺序播放' : '单句循环';
-        message.info(`切换到${modeText}模式`);
+        messageApi.info(`切换到${modeText}模式`);
     };
 
     // ⭐ 新增：切换显示模式
@@ -250,7 +253,7 @@ export const ListeningDetailPage: React.FC = () => {
         const newMode = displayMode === 'progressive' ? 'all' : 'progressive';
         setDisplayMode(newMode);
         const modeText = newMode === 'progressive' ? '逐句显示' : '显示全部';
-        message.info(`切换到${modeText}模式`);
+        messageApi.info(`切换到${modeText}模式`);
     };
 
     // ⭐ 新增：判断句子是否应该显示
@@ -359,12 +362,12 @@ export const ListeningDetailPage: React.FC = () => {
         if (!currentNoteSentence || !task) return;
 
         if (noteTags.length === 0) {
-            message.warning('请至少选择一个笔记类型（生词或语法）');
+            messageApi.warning('请至少选择一个笔记类型（生词或语法）');
             return;
         }
 
         if (noteTags.includes('vocabulary') && highlightedWords.length === 0) {
-            message.warning('选择“生词”时，请在原句中点击标记至少一个生词');
+            messageApi.warning('您选择了“生词”标签，请在原文中点击或拖拽选择具体的生词');
             return;
         }
 
@@ -397,11 +400,12 @@ export const ListeningDetailPage: React.FC = () => {
                 tags: noteTags,
                 highlighted_words: mergedWords
             });
-            message.success('笔记保存成功');
+            messageApi.success('笔记保存成功！已添加到我的笔记列表');
             setNoteModalVisible(false);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to save note:', error);
-            message.error('保存笔记失败');
+            const errorMsg = error.response?.data?.detail || error.message || '未知错误';
+            messageApi.error(`保存笔记失败: ${errorMsg}`);
         }
     };
 
@@ -510,6 +514,7 @@ export const ListeningDetailPage: React.FC = () => {
 
     return (
         <div style={{ padding: '24px', paddingBottom: '100px', maxWidth: '1200px', margin: '0 auto' }}>
+            {contextHolder}
             <Space style={{ marginBottom: '24px' }}>
                 <Button
                     icon={<ArrowLeftOutlined />}
