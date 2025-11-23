@@ -4,11 +4,13 @@ import storage from 'redux-persist/lib/storage';
 import ragReducer from './slices/ragSlice';
 import listeningReducer from './slices/listeningSlice';
 import practiceReducer from './slices/practiceSlice';
+import notesReducer from './slices/notesSlice';
 
 const rootReducer = combineReducers({
     rag: ragReducer,
     listening: listeningReducer,
     practice: practiceReducer,
+    notes: notesReducer,
 });
 
 const persistConfig = {

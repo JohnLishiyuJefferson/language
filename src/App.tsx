@@ -1,9 +1,10 @@
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Link, Navigate } from "react-router-dom";
 import TranslationPracticePage from "./TranslationPracticePage.tsx";
 import TranslationHistoryPage from "./TranslationHistoryPage.tsx";
 import { ListeningListPage } from "./ListeningListPage.tsx";
 import { ListeningDetailPage } from "./ListeningDetailPage.tsx";
 import RagSearchPage from "./RagSearchPage.tsx";
+import { MyNotesPage } from "./MyNotesPage.tsx"; // Added MyNotesPage import
 
 function App() {
     return (
@@ -13,7 +14,8 @@ function App() {
                 <nav style={{ padding: "10px", borderBottom: "1px solid #ccc" }}>
                     <Link to="/practice" style={{ marginRight: 20 }}>造句练习</Link>
                     <Link to="/listening" style={{ marginRight: 20 }}>听力练习</Link>
-                    <Link to="/rag">智能问答</Link>
+                    <Link to="/rag" style={{ marginRight: 20 }}>智能问答</Link>
+                    <Link to="/notes" style={{ marginRight: 20 }}>我的笔记</Link> {/* Added My Notes link */}
                 </nav>
 
                 {/* 路由声明 */}
@@ -28,6 +30,9 @@ function App() {
 
                     {/* RAG 搜索 */}
                     <Route path="/rag" element={<RagSearchPage />} />
+
+                    {/* My Notes */}
+                    <Route path="/notes" element={<MyNotesPage />} /> {/* Added My Notes route */}
 
                     {/* 默认跳到 /practice */}
                     <Route path="*" element={<TranslationPracticePage />} />
