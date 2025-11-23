@@ -12,6 +12,8 @@ import {
     Spin,
     Slider,
     Tooltip,
+    Modal,
+    Checkbox,
 } from 'antd';
 import {
     ArrowLeftOutlined,
@@ -29,6 +31,7 @@ import {
     VerticalAlignTopOutlined,
     MinusCircleOutlined,
     PlusCircleOutlined,
+    EditOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
 import { useNavigate, useParams } from "react-router-dom";
@@ -82,6 +85,13 @@ export const ListeningDetailPage: React.FC = () => {
     // ⭐ 新增：显示模式相关状态
     const [displayMode, setDisplayMode] = useState<'progressive' | 'all'>('progressive');
     const [maxVisibleIndex, setMaxVisibleIndex] = useState<number>(0);
+
+    // ⭐ 新增：笔记相关状态
+    const [noteModalVisible, setNoteModalVisible] = useState(false);
+    const [currentNoteSentence, setCurrentNoteSentence] = useState<TranslationItem | null>(null);
+    const [noteTags, setNoteTags] = useState<string[]>([]);
+    const [highlightedWords, setHighlightedWords] = useState<string[]>([]);
+    const [sentenceWords, setSentenceWords] = useState<string[]>([]);
 
     const audioRef = useRef<HTMLAudioElement>(null);
     const sentenceRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
@@ -260,9 +270,144 @@ export const ListeningDetailPage: React.FC = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    // ⭐ 新增：打开笔记模态框
+    const handleOpenNoteModal = (sentence: TranslationItem) => {
+        setCurrentNoteSentence(sentence);
+        setNoteTags([]);
+        setHighlightedWords([]);
+        setSentenceWords(sentence.original.split(''));
+        setNoteModalVisible(true);
+    };
+
+    // ⭐ 新增：处理单词点击（仅用于取消选中或单点选中）
+    const handleWordClick = (index: number) => {
+        const word = sentenceWords[index];
+        const key = `${index}-${word}`;
+
+        if (highlightedWords.includes(key)) {
+            // 取消选中逻辑：取消整块连续的区域
+            setHighlightedWords(prev => {
+                // 1. 获取所有已选索引
+                const indices = new Set(prev.map(k => parseInt(k.split('-')[0])));
+
+                // 2. 向左寻找边界
+                let start = index;
+                while (indices.has(start - 1)) {
+                    start--;
+                }
+
+                // 3. 向右寻找边界
+                let end = index;
+                while (indices.has(end + 1)) {
+                    end++;
+                }
+
+                // 4. 移除该范围内的所有词
+                return prev.filter(k => {
+                    const kIndex = parseInt(k.split('-')[0]);
+                    return kIndex < start || kIndex > end;
+                });
+            });
+        } else {
+            // 选中逻辑：单点选中（配合拖拽使用）
+            setHighlightedWords(prev => [...prev, key]);
+        }
+    };
+
+    // ⭐ 新增：处理文本选择（拖拽选择）
+    const handleTextSelection = () => {
+        const selection = window.getSelection();
+        if (!selection || selection.isCollapsed) return;
+
+        // Helper to get index from node
+        const getIndex = (node: Node | null): number | null => {
+            if (!node) return null;
+            // If node is text node, get parent. If element, check dataset.
+            const el = node.nodeType === Node.TEXT_NODE ? node.parentElement : node as HTMLElement;
+            if (el && el.dataset && el.dataset.index !== undefined) {
+                return parseInt(el.dataset.index, 10);
+            }
+            return null;
+        };
+
+        const start = getIndex(selection.anchorNode);
+        const end = getIndex(selection.focusNode);
+
+        if (start !== null && end !== null) {
+            const lower = Math.min(start, end);
+            const upper = Math.max(start, end);
+
+            setHighlightedWords(prev => {
+                const newHighlights = [...prev];
+                for (let i = lower; i <= upper; i++) {
+                    const char = sentenceWords[i];
+                    const key = `${i}-${char}`;
+                    if (!newHighlights.includes(key)) {
+                        newHighlights.push(key);
+                    }
+                }
+                return newHighlights;
+            });
+
+            // Clear selection to avoid visual clutter and show our red highlight
+            selection.removeAllRanges();
+        }
+    };
+
+    // ⭐ 新增：保存笔记
+    const handleSaveNote = async () => {
+        if (!currentNoteSentence || !task) return;
+
+        if (noteTags.length === 0) {
+            message.warning('请至少选择一个笔记类型（生词或语法）');
+            return;
+        }
+
+        if (noteTags.includes('vocabulary') && highlightedWords.length === 0) {
+            message.warning('选择“生词”时，请在原句中点击标记至少一个生词');
+            return;
+        }
+
+        const sortedIndices = highlightedWords
+            .map(key => parseInt(key.split('-')[0]))
+            .sort((a, b) => a - b);
+
+        const mergedWords: string[] = [];
+        let currentWord = '';
+        let lastIndex = -1;
+
+        for (const index of sortedIndices) {
+            if (lastIndex !== -1 && index !== lastIndex + 1) {
+                mergedWords.push(currentWord);
+                currentWord = '';
+            }
+            currentWord += sentenceWords[index];
+            lastIndex = index;
+        }
+        if (currentWord) {
+            mergedWords.push(currentWord);
+        }
+
+        try {
+            await axios.post(`${API_BASE_URL}/api/tts/note`, {
+                original_text: currentNoteSentence.original,
+                translation: currentNoteSentence.translation,
+                article_id: task.task_id,
+                sentence_index: currentNoteSentence.index,
+                tags: noteTags,
+                highlighted_words: mergedWords
+            });
+            message.success('笔记保存成功');
+            setNoteModalVisible(false);
+        } catch (error) {
+            console.error('Failed to save note:', error);
+            message.error('保存笔记失败');
+        }
+    };
+
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || noteModalVisible) return;
 
             switch (e.key) {
                 case 'Shift':
@@ -298,7 +443,7 @@ export const ListeningDetailPage: React.FC = () => {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isPlaying, currentSentenceIndex, playbackRate, playMode, task]);
+    }, [isPlaying, currentSentenceIndex, playbackRate, playMode, task, noteModalVisible]);
 
     // 音频时间更新
     const handleTimeUpdate = () => {
@@ -410,11 +555,25 @@ export const ListeningDetailPage: React.FC = () => {
                                 }}
                             >
                                 <Row gutter={[16, 8]}>
-                                    <Col span={24}>
-                                        <Tag color="blue">句子 {item.index}</Tag>
-                                        {!isVisible && (
-                                            <Tag color="default">未播放</Tag>
-                                        )}
+                                    <Col span={24} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <Space>
+                                            <Tag color="blue">句子 {item.index}</Tag>
+                                            {!isVisible && (
+                                                <Tag color="default">未播放</Tag>
+                                            )}
+                                        </Space>
+                                        {/* ⭐ 新增：做笔记按钮 */}
+                                        <Button
+                                            type="text"
+                                            icon={<EditOutlined />}
+                                            size="small"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleOpenNoteModal(item);
+                                            }}
+                                        >
+                                            做笔记
+                                        </Button>
                                     </Col>
                                     <Col span={24}>
                                         <Text strong>原文: </Text>
@@ -546,6 +705,80 @@ export const ListeningDetailPage: React.FC = () => {
                     </Tooltip>
                 </Space>
             </div>
+
+            {/* ⭐ 新增：笔记模态框 */}
+            <Modal
+                title="添加笔记"
+                open={noteModalVisible}
+                onOk={handleSaveNote}
+                onCancel={() => setNoteModalVisible(false)}
+                okText="完成"
+                cancelText="放弃"
+                width={600}
+            >
+                {currentNoteSentence && (
+                    <Space direction="vertical" style={{ width: '100%' }} size="large">
+                        <div>
+                            <Text strong>原文（拖拽选择生词，点击已选词可取消）：</Text>
+                            <div
+                                onMouseUp={handleTextSelection}
+                                style={{
+                                    marginTop: '8px',
+                                    padding: '12px',
+                                    border: '1px solid #d9d9d9',
+                                    borderRadius: '4px',
+                                    fontSize: '18px',
+                                    lineHeight: '2',
+                                    cursor: 'text',
+                                    userSelect: 'text'
+                                }}
+                            >
+                                {sentenceWords.map((char, index) => {
+                                    const key = `${index}-${char}`;
+                                    const isHighlighted = highlightedWords.includes(key);
+                                    return (
+                                        <span
+                                            key={key}
+                                            data-index={index}
+                                            onClick={() => handleWordClick(index)}
+                                            style={{
+                                                color: isHighlighted ? 'red' : 'inherit',
+                                                fontWeight: isHighlighted ? 'bold' : 'normal',
+                                                padding: '0 1px',
+                                                backgroundColor: isHighlighted ? '#fff1f0' : 'transparent',
+                                                transition: 'all 0.2s',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            {char}
+                                        </span>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <div>
+                            <Text strong>翻译：</Text>
+                            <Paragraph style={{ marginTop: '8px', fontSize: '16px' }}>
+                                {currentNoteSentence.translation}
+                            </Paragraph>
+                        </div>
+
+                        <div>
+                            <Text strong>笔记类型：</Text>
+                            <div style={{ marginTop: '8px' }}>
+                                <Checkbox.Group
+                                    value={noteTags}
+                                    onChange={(values) => setNoteTags(values as string[])}
+                                >
+                                    <Checkbox value="vocabulary">生词</Checkbox>
+                                    <Checkbox value="grammar">语法</Checkbox>
+                                </Checkbox.Group>
+                            </div>
+                        </div>
+                    </Space>
+                )}
+            </Modal>
         </div>
     );
 };
