@@ -451,12 +451,12 @@ export const ListeningDetailPage: React.FC = () => {
 
         const newTime = audioRef.current.currentTime * 1000;
         const oldSentenceIndex = currentSentenceIndex;
-        setCurrentTime(newTime);
 
         if (playMode === 'loop' && task?.speech_marks && oldSentenceIndex >= 0) {
             // 如果用户手动跳句，忽略本次循环逻辑
             if (targetSentenceIndex !== null && targetSentenceIndex !== oldSentenceIndex) {
                 setTargetSentenceIndex(null); // 清空标记
+                setCurrentTime(newTime);
                 return;
             }
 
@@ -464,12 +464,22 @@ export const ListeningDetailPage: React.FC = () => {
             const nextSentence = task.speech_marks[oldSentenceIndex + 1];
 
             if (nextSentence && newTime >= nextSentence.time) {
-                audioRef.current.currentTime = currentSentence.time / 1000;
+                // 循环播放：回到当前句子开始
+                const startTime = currentSentence.time / 1000;
+                audioRef.current.currentTime = startTime;
+                setCurrentTime(startTime * 1000);
+                return;
             } else if (!nextSentence && audioRef.current.ended) {
-                audioRef.current.currentTime = currentSentence.time / 1000;
+                // 最后一个句子循环
+                const startTime = currentSentence.time / 1000;
+                audioRef.current.currentTime = startTime;
                 audioRef.current.play();
+                setCurrentTime(startTime * 1000);
+                return;
             }
         }
+
+        setCurrentTime(newTime);
     };
 
     const handleBackToList = () => {
