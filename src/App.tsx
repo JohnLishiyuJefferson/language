@@ -6,6 +6,7 @@ import { ListeningDetailPage } from "./ListeningDetailPage.tsx";
 import RagSearchPage from "./RagSearchPage.tsx";
 import { MyNotesPage } from "./MyNotesPage.tsx";
 import { ArticleManagementPage } from "./ArticleManagementPage.tsx";
+import { ArticleDetailPage } from "./ArticleDetailPage.tsx";
 
 function App() {
     return (
@@ -38,6 +39,7 @@ function App() {
 
                     {/* Article Management */}
                     <Route path="/articles" element={<ArticleManagementPage />} />
+                    <Route path="/articles/:articleId" element={<ArticleDetailPage />} />
 
                     {/* 默认跳到 /practice */}
                     <Route path="*" element={<TranslationPracticePage />} />

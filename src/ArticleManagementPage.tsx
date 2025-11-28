@@ -105,6 +105,9 @@ export const ArticleManagementPage: React.FC = () => {
             dataIndex: 'title',
             key: 'title',
             width: '60%',
+            render: (text, record) => (
+                <a onClick={() => window.location.href = `/articles/${record._id}`}>{text}</a>
+            ),
         },
         {
             title: '来源文件',
