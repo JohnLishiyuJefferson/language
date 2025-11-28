@@ -4,7 +4,8 @@ import TranslationHistoryPage from "./TranslationHistoryPage.tsx";
 import { ListeningListPage } from "./ListeningListPage.tsx";
 import { ListeningDetailPage } from "./ListeningDetailPage.tsx";
 import RagSearchPage from "./RagSearchPage.tsx";
-import { MyNotesPage } from "./MyNotesPage.tsx"; // Added MyNotesPage import
+import { MyNotesPage } from "./MyNotesPage.tsx";
+import { ArticleManagementPage } from "./ArticleManagementPage.tsx";
 
 function App() {
     return (
@@ -15,7 +16,8 @@ function App() {
                     <Link to="/practice" style={{ marginRight: 20 }}>造句练习</Link>
                     <Link to="/listening" style={{ marginRight: 20 }}>听力练习</Link>
                     <Link to="/rag" style={{ marginRight: 20 }}>智能问答</Link>
-                    <Link to="/notes" style={{ marginRight: 20 }}>我的笔记</Link> {/* Added My Notes link */}
+                    <Link to="/notes" style={{ marginRight: 20 }}>我的笔记</Link>
+                    <Link to="/articles" style={{ marginRight: 20 }}>读物管理</Link>
                 </nav>
 
                 {/* 路由声明 */}
@@ -32,7 +34,10 @@ function App() {
                     <Route path="/rag" element={<RagSearchPage />} />
 
                     {/* My Notes */}
-                    <Route path="/notes" element={<MyNotesPage />} /> {/* Added My Notes route */}
+                    <Route path="/notes" element={<MyNotesPage />} />
+
+                    {/* Article Management */}
+                    <Route path="/articles" element={<ArticleManagementPage />} />
 
                     {/* 默认跳到 /practice */}
                     <Route path="*" element={<TranslationPracticePage />} />
